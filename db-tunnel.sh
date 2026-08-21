@@ -39,9 +39,13 @@ case $TARGET in
         DB_HOST="commondb-prod.cyd4mntzeb3t.ap-northeast-1.rds.amazonaws.com"
         DB_PORT="3306"
         ;;
+    "common_test")
+        DB_HOST="commondb-test.cyd4mntzeb3t.ap-northeast-1.rds.amazonaws.com"
+        DB_PORT="3306"
+        ;;
     *)
         echo "❌ Lỗi: Không tìm thấy DB '$TARGET'"
-        echo "👉 Các lựa chọn: illust, photo, common"
+        echo "👉 Các lựa chọn: illust, photo, common, common_test"
         exit 1
         ;;
 esac
