@@ -119,8 +119,9 @@ elif [ "$MENU_CHOICE" = "2" ]; then
 elif [ "$MENU_CHOICE" = "3" ]; then
     echo "----------------------------------------"
     if ! command -v session-manager-plugin &> /dev/null; then
-        echo "⚙️ Đang cài đặt Session Manager Plugin (lần đầu tiên)..."
-        brew install --cask session-manager-plugin
+        echo "❌ Lỗi: Bạn chưa cài đặt Session Manager Plugin!"
+        echo "👉 Vui lòng chạy lệnh sau để cài đặt: brew install --cask session-manager-plugin"
+        return 1 2>/dev/null || exit 1
     fi
     echo "🖥️ Đang mở Terminal trên Bastion Host (bằng SSM)..."
     aws ssm start-session --target i-082dce83c6a043395

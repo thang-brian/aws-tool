@@ -19,14 +19,10 @@ fi
 
 # 1. Kiểm tra session-manager-plugin
 if ! command -v session-manager-plugin &> /dev/null; then
-    echo "❌ Không tìm thấy 'session-manager-plugin'!"
-    if [[ "$OSTYPE" == "darwin"* ]] && command -v brew &> /dev/null; then
-        echo "⏳ Đang cài đặt tự động qua Homebrew..."
-        brew install --cask session-manager-plugin
-    else
-        echo "👉 Vui lòng cài đặt thủ công tại: https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html"
-        exit 1
-    fi
+    echo "❌ Lỗi: Bạn chưa cài đặt Session Manager Plugin!"
+    echo "👉 Vui lòng chạy lệnh sau để cài đặt (nhập mật khẩu máy Mac nếu được hỏi):"
+    echo "   brew install --cask session-manager-plugin"
+    exit 1
 fi
 
 # 2. Setup cấu hình tuỳ theo target
