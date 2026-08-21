@@ -38,7 +38,7 @@ fi
 if [ "$MENU_CHOICE" = "1" ]; then
     echo "----------------------------------------"
     echo "🌍 Đang khởi động trình duyệt để đăng nhập SSO..."
-    aws login || aws sso login
+    aws sso login
     
     if [ $? -eq 0 ]; then
         echo "✅ Đăng nhập Web thành công! Đang kiểm tra danh tính..."
