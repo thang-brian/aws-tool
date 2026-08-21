@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # === CẤU HÌNH GITHUB ===
-REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tools/main"
+REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/master"
 # =======================
 
 check_for_updates() {

@@ -1,9 +1,7 @@
 #!/bin/bash
 
 # === CẤU HÌNH GITHUB ===
-# TODO: Sửa link này thành đường dẫn thư mục raw (main) trên Github của bạn
-# Ví dụ: https://raw.githubusercontent.com/Acworks/aws-tools-db/main
-REPO_RAW_URL="https://raw.githubusercontent.com/YOUR_ORG/aws-tools-db/main"
+REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/master"
 # =======================
 
 INSTALL_DIR="$HOME/scripts"
