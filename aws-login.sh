@@ -19,8 +19,9 @@ echo "3. 🖥️  SSH vào Bastion Host"
 echo "4. 🛢️  Mở đường hầm (Tunnel) DB: Illust"
 echo "5. 🛢️  Mở đường hầm (Tunnel) DB: Photo"
 echo "6. 🛢️  Mở đường hầm (Tunnel) DB: Common"
+echo "7. 🛢️  Mở đường hầm (Tunnel) DB: Common Test"
 echo "=================================================="
-printf "👉 Chọn [1-6]: "
+printf "👉 Chọn [1-7]: "
 read MENU_CHOICE
 
 if [ "$MENU_CHOICE" = "1" ] || [ "$MENU_CHOICE" = "2" ]; then
@@ -132,6 +133,8 @@ elif [ "$MENU_CHOICE" = "5" ]; then
     bash "$HOME/scripts/db-tunnel.sh" photo
 elif [ "$MENU_CHOICE" = "6" ]; then
     bash "$HOME/scripts/db-tunnel.sh" common
+elif [ "$MENU_CHOICE" = "7" ]; then
+    bash "$HOME/scripts/db-tunnel.sh" common_test
 else
     echo "❌ Lựa chọn không hợp lệ."
 fi
