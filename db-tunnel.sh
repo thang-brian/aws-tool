@@ -64,5 +64,4 @@ echo "--------------------------------------------------"
 aws ssm start-session \
     --target "$BASTION_ID" \
     --document-name AWS-StartPortForwardingSessionToRemoteHost \
-    --parameters "{\"host\":[\"$DB_HOST\"],\"portNumber\":[\"$DB_PORT\"],\"localPortNumber\":[\"$DB_PORT\"]}" \
-    --profile "$PROFILE"
+    --parameters "{\"host\":[\"$DB_HOST\"],\"portNumber\":[\"$DB_PORT\"],\"localPortNumber\":[\"$DB_PORT\"]}"

@@ -24,9 +24,10 @@ echo "=================================================="
 echo "1. Đăng nhập qua Web / SSO (Khuyên dùng - No Key)"
 echo "2. Đăng nhập qua MFA (Access Key cũ)"
 echo "=================================================="
-read -p "👉 Chọn [1/2]: " LOGIN_CHOICE
+printf "👉 Chọn [1/2]: "
+read LOGIN_CHOICE
 
-if [ "$LOGIN_CHOICE" == "1" ]; then
+if [ "$LOGIN_CHOICE" = "1" ]; then
     echo "----------------------------------------"
     echo "🌍 Đang khởi động trình duyệt để đăng nhập SSO..."
     aws login || aws sso login
@@ -38,7 +39,7 @@ if [ "$LOGIN_CHOICE" == "1" ]; then
         echo "❌ Đăng nhập thất bại. Vui lòng kiểm tra lại cấu hình AWS SSO."
     fi
 
-elif [ "$LOGIN_CHOICE" == "2" ]; then
+elif [ "$LOGIN_CHOICE" = "2" ]; then
     # --- THAO TÁC CŨ: MFA ---
     SOURCE_PROFILE="japandev"
     TARGET_PROFILE="mfa"
@@ -72,7 +73,8 @@ elif [ "$LOGIN_CHOICE" == "2" ]; then
     fi
 
     echo "🎯 Đã tìm thấy MFA: $MFA_SERIAL"
-    read -p "👉 Nhập mã MFA (6 số) trên điện thoại: " TOKEN_CODE
+    printf "👉 Nhập mã MFA (6 số) trên điện thoại: "
+    read TOKEN_CODE
 
     if [ -z "$TOKEN_CODE" ]; then
         echo "❌ Chưa nhập mã code!"

@@ -44,7 +44,7 @@ Host bastionhost
   HostName $BASTION_ID
   User ec2-user
   IdentityFile $ABS_PEM_PATH
-  ProxyCommand sh -c "aws ssm start-session --target %h --region ap-northeast-1 --document-name AWS-StartSSHSession --parameters 'portNumber=%p' --profile default"
+  ProxyCommand sh -c "aws ssm start-session --target %h --region ap-northeast-1 --document-name AWS-StartSSHSession --parameters 'portNumber=%p'"
 EOF
 
 echo "✅ Đã thêm cấu hình thành công vào ~/.ssh/config"
