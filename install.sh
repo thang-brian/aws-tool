@@ -59,6 +59,14 @@ for config_file in "${TARGET_FILES[@]}"; do
         echo "export PATH=\"$INSTALL_DIR:\$PATH\"" >> "$config_file"
         echo "   ➕ Đã thêm thư mục scripts vào PATH."
     fi
+
+    # Thêm Alias để đảm bảo lệnh aws-login có thể xoá biến môi trường
+    if grep -q "alias aws-login=" "$config_file"; then
+        echo "   ✅ Alias aws-login đã tồn tại."
+    else
+        echo "alias aws-login='source $INSTALL_DIR/aws-login.sh'" >> "$config_file"
+        echo "   ➕ Đã thêm lệnh rút gọn: aws-login"
+    fi
     
     # Dọn dẹp source db_utils cũ (vì user đã xoá)
     # Dùng sed tương thích cho cả mac và linux

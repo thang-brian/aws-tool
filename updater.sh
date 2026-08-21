@@ -30,7 +30,7 @@ check_for_updates() {
                 
                 if [ $? -eq 0 ]; then
                     echo "✅ Đã cập nhật xong! Hãy chạy lại lệnh vừa rồi."
-                    exit 0
+                    return 99 2>/dev/null || exit 99
                 else
                     echo "❌ Lỗi: Cập nhật thất bại. Vẫn tiếp tục chạy bản cũ..."
                 fi
