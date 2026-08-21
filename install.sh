@@ -15,6 +15,8 @@ echo "📦 Đang kéo bản mới nhất từ Github vào: $INSTALL_DIR"
 # 2. Tải các file cần thiết (chỉ dùng curl)
 if command -v curl &> /dev/null; then
     curl -sL "$REPO_RAW_URL/aws-login.sh" -o "$INSTALL_DIR/aws-login.sh"
+    curl -sL "$REPO_RAW_URL/db-tunnel.sh" -o "$INSTALL_DIR/db-tunnel.sh"
+    curl -sL "$REPO_RAW_URL/ssh-bastion.sh" -o "$INSTALL_DIR/ssh-bastion.sh"
     curl -sL "$REPO_RAW_URL/updater.sh" -o "$INSTALL_DIR/updater.sh"
     curl -sL "$REPO_RAW_URL/version.txt" -o "$INSTALL_DIR/version.txt"
 else
@@ -24,6 +26,8 @@ fi
 
 # 3. Cấp quyền thực thi
 chmod +x "$INSTALL_DIR/aws-login.sh"
+chmod +x "$INSTALL_DIR/db-tunnel.sh"
+chmod +x "$INSTALL_DIR/ssh-bastion.sh"
 chmod +x "$INSTALL_DIR/updater.sh"
 
 # 4. TỰ ĐỘNG QUÉT FILE CẤU HÌNH
