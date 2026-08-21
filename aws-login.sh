@@ -8,26 +8,34 @@ if [ -f "$HOME/scripts/updater.sh" ]; then
 fi
 # ---------------------------------
 
-# Dọn dẹp cấu hình credentials cũ
-unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_PROFILE
-
-CRED_FILE="$HOME/.aws/credentials"
-if [ -f "$CRED_FILE" ]; then
-    cp "$CRED_FILE" "${CRED_FILE}.bak"
-    sed -i.bak -e '/^[[:space:]]*$/! s/^\([^#]\)/# \1/' "$CRED_FILE"
-    rm -f "${CRED_FILE}.bak"
-fi
-
 echo "=================================================="
-echo "🚀 CHỌN PHƯƠNG THỨC ĐĂNG NHẬP AWS"
+echo "🚀 BẢNG ĐIỀU KHIỂN TRUNG TÂM (AWS TOOLS)"
 echo "=================================================="
+echo "--- ĐĂNG NHẬP ---"
 echo "1. Đăng nhập qua Web / SSO (Khuyên dùng - No Key)"
 echo "2. Đăng nhập qua MFA (Access Key cũ)"
+echo "--- KẾT NỐI SERVER & DB ---"
+echo "3. 🖥️  SSH vào Bastion Host"
+echo "4. 🛢️  Mở đường hầm (Tunnel) DB: Illust"
+echo "5. 🛢️  Mở đường hầm (Tunnel) DB: Photo"
+echo "6. 🛢️  Mở đường hầm (Tunnel) DB: Common"
 echo "=================================================="
-printf "👉 Chọn [1/2]: "
-read LOGIN_CHOICE
+printf "👉 Chọn [1-6]: "
+read MENU_CHOICE
 
-if [ "$LOGIN_CHOICE" = "1" ]; then
+if [ "$MENU_CHOICE" = "1" ] || [ "$MENU_CHOICE" = "2" ]; then
+    # Dọn dẹp cấu hình credentials cũ trước khi login
+    unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_PROFILE
+    CRED_FILE="$HOME/.aws/credentials"
+    
+    if [ -f "$CRED_FILE" ]; then
+        cp "$CRED_FILE" "${CRED_FILE}.bak"
+        sed -i.bak -e '/^[[:space:]]*$/! s/^\([^#]\)/# \1/' "$CRED_FILE"
+        rm -f "${CRED_FILE}.bak"
+    fi
+fi
+
+if [ "$MENU_CHOICE" = "1" ]; then
     echo "----------------------------------------"
     echo "🌍 Đang khởi động trình duyệt để đăng nhập SSO..."
     aws login || aws sso login
@@ -39,7 +47,7 @@ if [ "$LOGIN_CHOICE" = "1" ]; then
         echo "❌ Đăng nhập thất bại. Vui lòng kiểm tra lại cấu hình AWS SSO."
     fi
 
-elif [ "$LOGIN_CHOICE" = "2" ]; then
+elif [ "$MENU_CHOICE" = "2" ]; then
     # --- THAO TÁC CŨ: MFA ---
     SOURCE_PROFILE="japandev"
     TARGET_PROFILE="mfa"
@@ -107,6 +115,22 @@ elif [ "$LOGIN_CHOICE" = "2" ]; then
     echo "✅ Đã lưu phiên đăng nhập thành công vào profile [$TARGET_PROFILE]!"
     echo "🚀 Hệ thống đã tự động gán biến môi trường AWS_PROFILE=mfa cho bạn."
     aws sts get-caller-identity
+
+elif [ "$MENU_CHOICE" = "3" ]; then
+    echo "----------------------------------------"
+    if ! grep -q "Host bastionhost" ~/.ssh/config 2>/dev/null; then
+        echo "❌ Bạn chưa setup SSH Config. Hãy chạy lệnh 'ssh-bastion.sh /đường/dẫn/file.pem' trước!"
+    else
+        echo "🖥️ Đang kết nối SSH vào Bastion Host..."
+        ssh bastionhost
+    fi
+
+elif [ "$MENU_CHOICE" = "4" ]; then
+    bash "$HOME/scripts/db-tunnel.sh" illust
+elif [ "$MENU_CHOICE" = "5" ]; then
+    bash "$HOME/scripts/db-tunnel.sh" photo
+elif [ "$MENU_CHOICE" = "6" ]; then
+    bash "$HOME/scripts/db-tunnel.sh" common
 else
     echo "❌ Lựa chọn không hợp lệ."
 fi
