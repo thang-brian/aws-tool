@@ -118,12 +118,8 @@ elif [ "$MENU_CHOICE" = "2" ]; then
 
 elif [ "$MENU_CHOICE" = "3" ]; then
     echo "----------------------------------------"
-    if ! grep -q "Host bastionhost" ~/.ssh/config 2>/dev/null; then
-        echo "❌ Bạn chưa setup SSH Config. Hãy chạy lệnh 'ssh-bastion.sh /đường/dẫn/file.pem' trước!"
-    else
-        echo "🖥️ Đang kết nối SSH vào Bastion Host..."
-        ssh bastionhost
-    fi
+    echo "🖥️ Đang mở Terminal trên Bastion Host (bằng SSM)..."
+    aws ssm start-session --target i-082dce83c6a043395
 
 elif [ "$MENU_CHOICE" = "4" ]; then
     bash "$HOME/scripts/db-tunnel.sh" illust
