@@ -17,7 +17,8 @@ check_for_updates() {
     
     # Dùng curl để lấy version mới nhất, timeout 2s để không làm chậm lúc user login
     if command -v curl &> /dev/null; then
-        local latest_version=$(curl -s --max-time 2 "$REPO_RAW_URL/version.txt")
+        local cache_bust="?t=$(date +%s)"
+        local latest_version=$(curl -s --max-time 2 "$REPO_RAW_URL/version.txt${cache_bust}")
         
         # Kiểm tra xem curl có trả về kết quả hợp lệ không (có format x.y.z)
         if [[ ! -z "$latest_version" && "$latest_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -26,7 +27,7 @@ check_for_updates() {
                 echo "⏳ Đang tự động cập nhật, xin chờ trong giây lát..."
                 
                 # Tải file install.sh từ Github và thực thi nó
-                curl -sL "$REPO_RAW_URL/install.sh" | bash
+                curl -sL "$REPO_RAW_URL/install.sh${cache_bust}" | bash
                 
                 if [ $? -eq 0 ]; then
                     echo "✅ Đã cập nhật xong! Hãy chạy lại lệnh vừa rồi."

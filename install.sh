@@ -14,11 +14,12 @@ echo "📦 Đang kéo bản mới nhất từ Github vào: $INSTALL_DIR"
 
 # 2. Tải các file cần thiết (chỉ dùng curl)
 if command -v curl &> /dev/null; then
-    curl -sL "$REPO_RAW_URL/aws-login.sh" -o "$INSTALL_DIR/aws-login.sh"
-    curl -sL "$REPO_RAW_URL/db-tunnel.sh" -o "$INSTALL_DIR/db-tunnel.sh"
-    curl -sL "$REPO_RAW_URL/ssh-bastion.sh" -o "$INSTALL_DIR/ssh-bastion.sh"
-    curl -sL "$REPO_RAW_URL/updater.sh" -o "$INSTALL_DIR/updater.sh"
-    curl -sL "$REPO_RAW_URL/version.txt" -o "$INSTALL_DIR/version.txt"
+    CACHE_BUST="?t=$(date +%s)"
+    curl -sL "$REPO_RAW_URL/aws-login.sh${CACHE_BUST}" -o "$INSTALL_DIR/aws-login.sh"
+    curl -sL "$REPO_RAW_URL/db-tunnel.sh${CACHE_BUST}" -o "$INSTALL_DIR/db-tunnel.sh"
+    curl -sL "$REPO_RAW_URL/ssh-bastion.sh${CACHE_BUST}" -o "$INSTALL_DIR/ssh-bastion.sh"
+    curl -sL "$REPO_RAW_URL/updater.sh${CACHE_BUST}" -o "$INSTALL_DIR/updater.sh"
+    curl -sL "$REPO_RAW_URL/version.txt${CACHE_BUST}" -o "$INSTALL_DIR/version.txt"
 else
     echo "❌ Lỗi: Cần cài đặt lệnh 'curl' để có thể tải code từ Github!"
     exit 1
