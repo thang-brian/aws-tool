@@ -294,14 +294,18 @@ run_auto_dbeaver() {
     if [ -n "$TOKEN" ]; then
         echo "🚀 Đang gọi DBeaver mở Database $target..."
         local driver="mysql8"
-        if [ "$target" = "illust" ]; then driver="postgres-jdbc"; fi
+        local db_param=""
+        if [ "$target" = "illust" ]; then 
+            driver="postgres-jdbc"
+            db_param="|database=acillustcom"
+        fi
         
         # MacOS
         if [ -d "/Applications/DBeaver.app" ]; then
-            open -n -a DBeaver --args -con "driver=$driver|name=${target}_Auto|host=127.0.0.1|port=$LOCAL_PORT|user=$DB_USER|password=$TOKEN|create=true|save=true"
+            open -n -a DBeaver --args -con "driver=$driver|name=${target}_Auto|host=127.0.0.1|port=$LOCAL_PORT|user=$DB_USER|password=$TOKEN${db_param}|create=true|save=true"
         # Windows Git Bash
         elif command -v dbeaver-cli &> /dev/null; then
-            dbeaver-cli -con "driver=$driver|name=${target}_Auto|host=127.0.0.1|port=$LOCAL_PORT|user=$DB_USER|password=$TOKEN|create=true|save=true" &
+            dbeaver-cli -con "driver=$driver|name=${target}_Auto|host=127.0.0.1|port=$LOCAL_PORT|user=$DB_USER|password=$TOKEN${db_param}|create=true|save=true" &
         else
             echo "❌ Lỗi: Không tìm thấy DBeaver trên máy."
         fi
