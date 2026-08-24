@@ -302,7 +302,7 @@ run_auto_dbeaver() {
         case $target in
             "illust") dbeaver_name="illust New" ;;
             "photo") dbeaver_name="photo New" ;;
-            "common") dbeaver_name="common New" ;;
+            "common") dbeaver_name="common Test New" ;;
             "common_test") dbeaver_name="common Test New" ;;
             "newyear") dbeaver_name="newyear New" ;;
         esac
@@ -324,10 +324,10 @@ run_auto_dbeaver() {
                 fi
             fi
             # Use create=false so it reuses the existing connection and its SSL config
-            eval "/Applications/DBeaver.app/Contents/MacOS/dbeaver $data_arg -con \"name=$dbeaver_name|user=$DB_USER|password=$TOKEN${db_param}\"" &
+            eval "/Applications/DBeaver.app/Contents/MacOS/dbeaver $data_arg -con \"driver=$driver|name=$dbeaver_name|user=$DB_USER|password=$TOKEN${db_param}|create=false\"" &
         # Windows Git Bash
         elif command -v dbeaver-cli &> /dev/null; then
-            dbeaver-cli -con "name=$dbeaver_name|user=$DB_USER|password=$TOKEN${db_param}" &
+            dbeaver-cli -con "driver=$driver|name=$dbeaver_name|user=$DB_USER|password=$TOKEN${db_param}|create=false" &
         else
             echo "❌ Lỗi: Không tìm thấy DBeaver trên máy."
         fi
