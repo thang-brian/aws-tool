@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="2.1.1"
+VERSION="2.1.2"
 REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/refs/heads/master"
 
 if [ -f "$HOME/.aws/aws-tools.env" ]; then
@@ -76,6 +76,14 @@ setup_aws_config() {
         if [ -z "$IAM_USER_ARN" ]; then
             echo "❌ Cần User ARN để tiếp tục."
             return 1 2>/dev/null || exit 1
+        fi
+        
+        # Tự động sửa lỗi nếu người dùng nhập nhầm chuỗi STS Assumed Role (copy từ góc phải AWS Console)
+        if [[ "$IAM_USER_ARN" == *"sts"* ]] || [[ "$IAM_USER_ARN" == *"assumed-role"* ]]; then
+            local ACCOUNT_ID=$(echo "$IAM_USER_ARN" | awk -F':' '{print $5}')
+            local USERNAME=$(echo "$IAM_USER_ARN" | awk -F'/' '{print $NF}')
+            IAM_USER_ARN="arn:aws:iam::${ACCOUNT_ID}:user/${USERNAME}"
+            echo "⚠️  Phát hiện nhập nhầm STS Role. Đã tự động sửa thành: $IAM_USER_ARN"
         fi
         
         local ARN_PREFIX=$(echo "$IAM_USER_ARN" | awk -F'user/' '{print $1}')
