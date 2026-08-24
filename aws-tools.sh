@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="2.1.3"
+VERSION="2.2.0"
 REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/refs/heads/master"
 
 if [ -f "$HOME/.aws/aws-tools.env" ]; then
@@ -257,6 +257,61 @@ run_dbeaver() {
 }
 
 # ==========================================
+# 3.5 AUTO DBEAVER (ZERO-CONFIG CLI)
+# ==========================================
+run_auto_dbeaver() {
+    local target=$1
+    export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH
+    get_db_config "$target" || return 1
+    
+    if ! is_port_in_use "$LOCAL_PORT"; then
+        echo "⏳ Tunnel chưa mở! Đang tự động mở ngầm Port Forwarding tới $target..."
+        aws ssm start-session \
+            --target "$BASTION_ID" \
+            --document-name AWS-StartPortForwardingSessionToRemoteHost \
+            --parameters "{\"host\":[\"$DB_HOST\"],\"portNumber\":[\"$DB_PORT\"],\"localPortNumber\":[\"$LOCAL_PORT\"]}" \
+            --profile prod > /dev/null 2>&1 &
+        sleep 3
+    fi
+
+    if [ -n "$STATIC_PASS" ]; then
+        TOKEN="$STATIC_PASS"
+        DB_USER="$COMMON_TEST_DB_USER"
+        if [ "$target" = "newyear" ]; then DB_USER="$NEWYEAR_DB_USER"; fi
+        echo "✅ Lấy mật khẩu tĩnh thành công!"
+    else
+        CURRENT_USER=$(aws sts get-caller-identity --query Arn --output text --profile prod 2>/dev/null | awk -F/ '{print $NF}')
+        DB_USER="$CURRENT_USER"
+        TOKEN=$(aws rds generate-db-auth-token \
+            --hostname "$DB_HOST" \
+            --port "$DB_PORT" \
+            --region "ap-northeast-1" \
+            --username "$CURRENT_USER" \
+            --profile prod 2>/dev/null)
+        echo "✅ Sinh IAM Token thành công!"
+    fi
+
+    if [ -n "$TOKEN" ]; then
+        echo "🚀 Đang gọi DBeaver mở Database $target..."
+        local driver="mysql8"
+        if [ "$target" = "illust" ]; then driver="postgres-jdbc"; fi
+        
+        # MacOS
+        if [ -d "/Applications/DBeaver.app" ]; then
+            open -n -a DBeaver --args -con "driver=$driver|name=${target}_Auto|host=127.0.0.1|port=$LOCAL_PORT|user=$DB_USER|password=$TOKEN|create=true|save=true"
+        # Windows Git Bash
+        elif command -v dbeaver-cli &> /dev/null; then
+            dbeaver-cli -con "driver=$driver|name=${target}_Auto|host=127.0.0.1|port=$LOCAL_PORT|user=$DB_USER|password=$TOKEN|create=true|save=true" &
+        else
+            echo "❌ Lỗi: Không tìm thấy DBeaver trên máy."
+        fi
+    else
+        echo "❌ Lỗi: Không lấy được DB Token!"
+        return 1 2>/dev/null || exit 1
+    fi
+}
+
+# ==========================================
 # 4. BASTION SSH (FALLBACK)
 # ==========================================
 run_ssh_bastion() {
@@ -285,12 +340,13 @@ run_menu() {
     echo "--- KẾT NỐI SERVER & DB ---"
     echo "3. 🖥️  SSH vào Bastion Host (Giao diện CLI)"
     echo "4. 🛢️  Mở đường hầm (Tunnel) DB: Illust"
-    echo "5. 🛢️  Mở đường hầm (Tunnel) DB: Photo"
-    echo "6. 🛢️  Mở đường hầm (Tunnel) DB: Common"
-    echo "7. 🛢️  Mở đường hầm (Tunnel) DB: Common Test (Static Pass)"
-    echo "8. 🛢️  Mở đường hầm (Tunnel) DB: New Year (Static Pass)"
+    echo "5. 🛢️  Tunnel -> Photo DB         (Port 3306)"
+    echo "6. 🛢️  Tunnel -> Common DB        (Port 3307)"
+    echo "7. 🛢️  Tunnel -> Common Test DB   (Port 3308)"
+    echo "8. 🛢️  Tunnel -> NewYear DB       (Port 3309)"
+    echo "9. 🚀 Auto-Connect DBeaver (Không cần Setup DBeaver)"
     echo "=================================================="
-    printf "👉 Chọn [1-8]: "
+    printf "👉 Chọn [1-9]: "
     read MENU_CHOICE
 
     if [ "$MENU_CHOICE" = "1" ] || [ "$MENU_CHOICE" = "2" ]; then
@@ -344,6 +400,23 @@ run_menu() {
             6) run_tunnel "common" ;;
             7) run_tunnel "common_test" ;;
             8) run_tunnel "newyear" ;;
+        esac
+    elif [ "$MENU_CHOICE" = "9" ]; then
+        echo "Chọn DB muốn Auto-Connect:"
+        echo "1) illust"
+        echo "2) photo"
+        echo "3) common"
+        echo "4) common_test"
+        echo "5) newyear"
+        printf "👉 Chọn (1-5): "
+        read DB_CHOICE
+        case $DB_CHOICE in
+            1) run_auto_dbeaver "illust" ;;
+            2) run_auto_dbeaver "photo" ;;
+            3) run_auto_dbeaver "common" ;;
+            4) run_auto_dbeaver "common_test" ;;
+            5) run_auto_dbeaver "newyear" ;;
+            *) echo "❌ Không hợp lệ." ;;
         esac
     else
         echo "❌ Không hợp lệ."
