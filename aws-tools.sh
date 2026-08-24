@@ -387,7 +387,7 @@ run_menu() {
 
     if [ "$MENU_CHOICE" = "1" ]; then
         echo "🌍 Đang khởi động trình duyệt để đăng nhập SSO..."
-        aws sso login --profile base
+        aws login --profile base
         if [ $? -eq 0 ]; then
             echo "✅ Đăng nhập Web thành công!"
             aws sts get-caller-identity
