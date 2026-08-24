@@ -12,14 +12,41 @@ fi
 
 # 0. Kiểm tra môi trường (AWS CLI & Session Manager Plugin)
 echo "🔍 Đang kiểm tra môi trường hệ thống..."
+# Hàm so sánh version
+version_lt() {
+    [ "$1" = "$2" ] && return 1 || [ "$1" = "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" ]
+}
+
 if ! command -v aws &> /dev/null; then
     echo "⚠️  Chưa cài đặt AWS CLI."
     if command -v brew &> /dev/null; then
         echo "⏳ Đang tự động cài đặt AWS CLI qua Homebrew..."
         brew install awscli
     else
-        echo "❌ Vui lòng cài đặt AWS CLI trước khi chạy Script này!"
-        exit 1
+        echo "⏳ Đang tự động cài đặt AWS CLI bằng pkg..."
+        curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "/tmp/AWSCLIV2.pkg"
+        sudo installer -pkg /tmp/AWSCLIV2.pkg -target /
+        rm -f "/tmp/AWSCLIV2.pkg"
+    fi
+else
+    # Kiểm tra version (cần tối thiểu 2.22.0 cho lệnh aws login)
+    MIN_AWS_VERSION="2.22.0"
+    AWS_CURRENT_VERSION=$(aws --version 2>&1 | grep -o 'aws-cli/[0-9]*\.[0-9]*\.[0-9]*' | cut -d'/' -f2)
+    
+    if [ -n "$AWS_CURRENT_VERSION" ]; then
+        if version_lt "$AWS_CURRENT_VERSION" "$MIN_AWS_VERSION"; then
+            echo "⚠️  Phiên bản AWS CLI hiện tại ($AWS_CURRENT_VERSION) đã cũ. Yêu cầu tối thiểu: $MIN_AWS_VERSION"
+            echo "⏳ Đang tự động nâng cấp AWS CLI..."
+            if command -v brew &> /dev/null && brew list awscli &>/dev/null; then
+                brew upgrade awscli
+            else
+                curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "/tmp/AWSCLIV2.pkg"
+                sudo installer -pkg /tmp/AWSCLIV2.pkg -target /
+                rm -f "/tmp/AWSCLIV2.pkg"
+            fi
+        else
+            echo "✅ AWS CLI phiên bản $AWS_CURRENT_VERSION đạt yêu cầu."
+        fi
     fi
 fi
 
