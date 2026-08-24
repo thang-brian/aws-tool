@@ -296,6 +296,17 @@ run_auto_dbeaver() {
 
     if [ -n "$TOKEN" ]; then
         echo "🚀 Đang gọi DBeaver mở Database $target..."
+        
+        # Map to user's existing DBeaver connection names
+        local dbeaver_name="${target}_Auto"
+        case $target in
+            "illust") dbeaver_name="acillustcom New" ;;
+            "photo") dbeaver_name="PhotoNew" ;;
+            "common") dbeaver_name="Freebie New" ;;
+            "common_test") dbeaver_name="Freebie TEST" ;;
+            "newyear") dbeaver_name="newyear-db" ;;
+        esac
+
         local driver="mysql8"
         local db_param=""
         if [ "$target" = "illust" ]; then 
@@ -312,10 +323,11 @@ run_auto_dbeaver() {
                     data_arg="-data \"$workspace_path\""
                 fi
             fi
-            eval "/Applications/DBeaver.app/Contents/MacOS/dbeaver $data_arg -con \"driver=$driver|name=${target}_Auto|host=127.0.0.1|port=$LOCAL_PORT|user=$DB_USER|password=$TOKEN${db_param}|create=true|save=true\"" &
+            # Use create=false so it reuses the existing connection and its SSL config
+            eval "/Applications/DBeaver.app/Contents/MacOS/dbeaver $data_arg -con \"name=$dbeaver_name|user=$DB_USER|password=$TOKEN${db_param}\"" &
         # Windows Git Bash
         elif command -v dbeaver-cli &> /dev/null; then
-            dbeaver-cli -con "driver=$driver|name=${target}_Auto|host=127.0.0.1|port=$LOCAL_PORT|user=$DB_USER|password=$TOKEN${db_param}|create=true|save=true" &
+            dbeaver-cli -con "name=$dbeaver_name|user=$DB_USER|password=$TOKEN${db_param}" &
         else
             echo "❌ Lỗi: Không tìm thấy DBeaver trên máy."
         fi
