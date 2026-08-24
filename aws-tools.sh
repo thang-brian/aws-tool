@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="2.2.1"
+VERSION="2.2.2"
 REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/refs/heads/master"
 
 if [ -f "$HOME/.aws/aws-tools.env" ]; then
@@ -387,7 +387,7 @@ run_menu() {
 
     if [ "$MENU_CHOICE" = "1" ]; then
         echo "🌍 Đang khởi động trình duyệt để đăng nhập SSO..."
-        aws login --profile base
+        aws sso login --profile base
         if [ $? -eq 0 ]; then
             echo "✅ Đăng nhập Web thành công!"
             aws sts get-caller-identity
