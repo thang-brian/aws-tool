@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="2.2.0"
+VERSION="2.2.1"
 REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/refs/heads/master"
 
 if [ -f "$HOME/.aws/aws-tools.env" ]; then
@@ -300,11 +300,11 @@ run_auto_dbeaver() {
         # Map to user's existing DBeaver connection names
         local dbeaver_name="${target}_Auto"
         case $target in
-            "illust") dbeaver_name="acillustcom New" ;;
-            "photo") dbeaver_name="PhotoNew" ;;
-            "common") dbeaver_name="Freebie New" ;;
-            "common_test") dbeaver_name="Freebie TEST" ;;
-            "newyear") dbeaver_name="newyear-db" ;;
+            "illust") dbeaver_name="illust New" ;;
+            "photo") dbeaver_name="photo New" ;;
+            "common") dbeaver_name="common New" ;;
+            "common_test") dbeaver_name="common Test New" ;;
+            "newyear") dbeaver_name="newyear New" ;;
         esac
 
         local driver="mysql8"
