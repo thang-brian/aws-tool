@@ -129,6 +129,9 @@ EOF_CONFIG
 # ==========================================
 get_db_config() {
     local target=$1
+    STATIC_PASS=""
+    DB_USER=""
+    TOKEN=""
 
     case $target in
         "illust")
