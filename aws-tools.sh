@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="2.1.0"
+VERSION="2.1.1"
 REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/refs/heads/master"
 
 if [ -f "$HOME/.aws/aws-tools.env" ]; then
@@ -144,6 +144,12 @@ get_db_config() {
             LOCAL_PORT="3308"
             STATIC_PASS="$COMMON_TEST_DB_PASS"
             ;;
+        "newyear")
+            DB_HOST="$DB_HOST_NEWYEAR"
+            DB_PORT="3360"
+            LOCAL_PORT="3309"
+            STATIC_PASS="$NEWYEAR_DB_PASS"
+            ;;
         *)
             echo "❌ Lỗi: Không tìm thấy DB '$target'"
             return 1 2>/dev/null || exit 1
@@ -274,8 +280,9 @@ run_menu() {
     echo "5. 🛢️  Mở đường hầm (Tunnel) DB: Photo"
     echo "6. 🛢️  Mở đường hầm (Tunnel) DB: Common"
     echo "7. 🛢️  Mở đường hầm (Tunnel) DB: Common Test (Static Pass)"
+    echo "8. 🛢️  Mở đường hầm (Tunnel) DB: New Year (Static Pass)"
     echo "=================================================="
-    printf "👉 Chọn [1-7]: "
+    printf "👉 Chọn [1-8]: "
     read MENU_CHOICE
 
     if [ "$MENU_CHOICE" = "1" ] || [ "$MENU_CHOICE" = "2" ]; then
@@ -322,12 +329,13 @@ run_menu() {
         echo "👉 sudo su - ec2-user"
         echo "--------------------------------------------------"
         aws ssm start-session --target "$BASTION_ID" --profile prod
-    elif [[ "$MENU_CHOICE" -ge 4 && "$MENU_CHOICE" -le 7 ]]; then
+    elif [[ "$MENU_CHOICE" -ge 4 && "$MENU_CHOICE" -le 8 ]]; then
         case $MENU_CHOICE in
             4) run_tunnel "illust" ;;
             5) run_tunnel "photo" ;;
             6) run_tunnel "common" ;;
             7) run_tunnel "common_test" ;;
+            8) run_tunnel "newyear" ;;
         esac
     else
         echo "❌ Không hợp lệ."
