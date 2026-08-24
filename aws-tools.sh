@@ -302,7 +302,7 @@ run_auto_dbeaver() {
         
         # MacOS
         if [ -d "/Applications/DBeaver.app" ]; then
-            open -n -a DBeaver --args -con "driver=$driver|name=${target}_Auto|host=127.0.0.1|port=$LOCAL_PORT|user=$DB_USER|password=$TOKEN${db_param}|create=true|save=true"
+            open -a DBeaver --args -con "driver=$driver|name=${target}_Auto|host=127.0.0.1|port=$LOCAL_PORT|user=$DB_USER|password=$TOKEN${db_param}|create=true|save=true"
         # Windows Git Bash
         elif command -v dbeaver-cli &> /dev/null; then
             dbeaver-cli -con "driver=$driver|name=${target}_Auto|host=127.0.0.1|port=$LOCAL_PORT|user=$DB_USER|password=$TOKEN${db_param}|create=true|save=true" &
