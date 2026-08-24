@@ -10,6 +10,31 @@ if [ -z "$SECRET_FILE" ] || [ ! -f "$SECRET_FILE" ]; then
     exit 1
 fi
 
+# 0. Kiểm tra môi trường (AWS CLI & Session Manager Plugin)
+echo "🔍 Đang kiểm tra môi trường hệ thống..."
+if ! command -v aws &> /dev/null; then
+    echo "⚠️  Chưa cài đặt AWS CLI."
+    if command -v brew &> /dev/null; then
+        echo "⏳ Đang tự động cài đặt AWS CLI qua Homebrew..."
+        brew install awscli
+    else
+        echo "❌ Vui lòng cài đặt AWS CLI trước khi chạy Script này!"
+        exit 1
+    fi
+fi
+
+if ! command -v session-manager-plugin &> /dev/null; then
+    echo "⚠️  Chưa cài đặt Session Manager Plugin."
+    if command -v brew &> /dev/null; then
+        echo "⏳ Đang tự động cài đặt Session Manager Plugin qua Homebrew..."
+        brew install --cask session-manager-plugin
+    else
+        echo "❌ Vui lòng cài đặt Session Manager Plugin trước khi chạy Script này!"
+        exit 1
+    fi
+fi
+echo "✅ Môi trường đạt chuẩn!"
+
 # 1. Tạo thư mục chứa script
 INSTALL_DIR="$HOME/scripts"
 mkdir -p "$INSTALL_DIR"

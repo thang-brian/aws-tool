@@ -2,7 +2,19 @@
 
 Bộ công cụ tự động hoá mọi thao tác đăng nhập AWS và kết nối Database qua SSM (Không cần SSH/Key). Đã được tối ưu thành **1 file duy nhất**.
 
-## 1. Cài đặt ban đầu
+## 1. Yêu cầu hệ thống (Prerequisites)
+Trước khi cài đặt Tool, máy bạn CẦN có sẵn 2 công cụ cốt lõi của AWS:
+1. **AWS CLI v2**: Cung cấp các lệnh gọi AWS.
+2. **Session Manager Plugin**: Cung cấp công nghệ mở Tunnel bảo mật (Bắt buộc).
+
+**Cài đặt trên Mac (Dùng Homebrew):**
+```bash
+brew install awscli
+brew install --cask session-manager-plugin
+```
+*(Đối với Windows, vui lòng tải bộ cài `.exe` hoặc `.msi` từ trang chủ AWS).*
+
+## 2. Cài đặt Tool
 Vì lý do bảo mật, Tool này không chứa các thông tin nhạy cảm (Endpoint DB, Bastion ID).
 Bạn cần xin file `secret.txt` từ Leader hoặc tải về máy, sau đó chạy lệnh cài đặt kèm theo đường dẫn file đó:
 ```bash
@@ -13,14 +25,14 @@ aws-tools
 ```
 Lần đầu chạy, tool sẽ yêu cầu bạn nhập `Username` để tự động khởi tạo cấu hình `~/.aws/config`.
 
-## 2. Cách sử dụng (Hằng ngày)
+## 3. Cách sử dụng (Hằng ngày)
 Gõ lệnh `aws-tools` (hoặc lệnh cũ `aws-login` đều được) để mở Bảng Menu trung tâm:
 ```bash
 aws-tools
 ```
 Tại Menu, bạn chọn **1** để xác thực Web, sau đó chọn từ **4-7** để mở đường hầm tới Database mong muốn.
 
-## 3. Tích hợp thẳng vào DBeaver (Kết nối 1-Click)
+## 4. Tích hợp thẳng vào DBeaver (Kết nối 1-Click)
 Đây là tính năng tiện lợi nhất. Bạn **không cần mở Terminal**, chỉ cần cấu hình thẳng vào DBeaver.
 1. Mở Edit Connection của Database trong DBeaver.
 2. Tại mục **Server Host**, điền: `localhost`
@@ -34,7 +46,7 @@ Tại Menu, bạn chọn **1** để xác thực Web, sau đó chọn từ **4-7
 
 Mỗi khi click Connect, tool sẽ tự mở đường hầm ngầm và copy mật khẩu Token vào Clipboard. Bạn chỉ cần nhấn `Cmd + V` để dán vào ô Password.
 
-## 4. Dùng với DataGrip / Terminal
+## 5. Dùng với DataGrip / Terminal
 Nếu bạn dùng tool khác không có tính năng Before Connection, bạn có thể gọi các lệnh tắt từ Terminal:
 - `aws-tools tunnel photo` (Mở hầm cho db photo)
 - `aws-tools dbeaver common` (Mở hầm & Copy Token DB common)
