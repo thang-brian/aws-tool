@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="2.1.2"
+VERSION="2.1.3"
 REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/refs/heads/master"
 
 if [ -f "$HOME/.aws/aws-tools.env" ]; then
@@ -154,7 +154,7 @@ get_db_config() {
             ;;
         "newyear")
             DB_HOST="$DB_HOST_NEWYEAR"
-            DB_PORT="3360"
+            DB_PORT="3306"
             LOCAL_PORT="3309"
             STATIC_PASS="$NEWYEAR_DB_PASS"
             ;;
