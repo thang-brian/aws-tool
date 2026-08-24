@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="2.0.7"
+VERSION="2.1.0"
 REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/refs/heads/master"
 
 if [ -f "$HOME/.aws/aws-tools.env" ]; then
@@ -142,6 +142,7 @@ get_db_config() {
             DB_HOST="$DB_HOST_COMMON_TEST"
             DB_PORT="3306"
             LOCAL_PORT="3308"
+            STATIC_PASS="$COMMON_TEST_DB_PASS"
             ;;
         *)
             echo "❌ Lỗi: Không tìm thấy DB '$target'"
@@ -155,19 +156,24 @@ run_tunnel() {
     get_db_config "$target" || return 1
     
 
-    CURRENT_USER=$(aws sts get-caller-identity --query Arn --output text --profile prod 2>/dev/null | awk -F/ '{print $NF}')
-    if [ -z "$CURRENT_USER" ]; then
-        echo "❌ Lỗi: Không lấy được IAM User. Bạn đã login chưa?"
-        return 1 2>/dev/null || exit 1
-    fi
+    if [ -n "$STATIC_PASS" ]; then
+        echo "⏳ Chế độ tĩnh: Đang lấy mật khẩu (không cần AWS Token)..."
+        TOKEN="$STATIC_PASS"
+    else
+        CURRENT_USER=$(aws sts get-caller-identity --query Arn --output text --profile prod 2>/dev/null | awk -F/ '{print $NF}')
+        if [ -z "$CURRENT_USER" ]; then
+            echo "❌ Lỗi: Không lấy được IAM User. Bạn đã login chưa?"
+            return 1 2>/dev/null || exit 1
+        fi
 
-    echo "⏳ Đang tạo Token đăng nhập DB cho user $CURRENT_USER..."
-    TOKEN=$(aws rds generate-db-auth-token \
-        --hostname "$DB_HOST" \
-        --port "$DB_PORT" \
-        --region "ap-northeast-1" \
-        --username "$CURRENT_USER" \
-        --profile prod 2>/dev/null)
+        echo "⏳ Đang tạo Token đăng nhập DB cho user $CURRENT_USER..."
+        TOKEN=$(aws rds generate-db-auth-token \
+            --hostname "$DB_HOST" \
+            --port "$DB_PORT" \
+            --region "ap-northeast-1" \
+            --username "$CURRENT_USER" \
+            --profile prod 2>/dev/null)
+    fi
 
     if [ -n "$TOKEN" ]; then
         echo -n "$TOKEN" | copy_to_clipboard
@@ -210,22 +216,26 @@ run_dbeaver() {
         sleep 3
     fi
 
-    CURRENT_USER=$(aws sts get-caller-identity --query Arn --output text --profile prod 2>/dev/null | awk -F/ '{print $NF}')
-    if [ -z "$CURRENT_USER" ]; then
-        echo "❌ Lỗi: Không lấy được IAM User. Bạn đã login chưa?"
-        return 1 2>/dev/null || exit 1
+    if [ -n "$STATIC_PASS" ]; then
+        TOKEN="$STATIC_PASS"
+        echo "✅ Lấy mật khẩu tĩnh thành công!"
+    else
+        CURRENT_USER=$(aws sts get-caller-identity --query Arn --output text --profile prod 2>/dev/null | awk -F/ '{print $NF}')
+        TOKEN=$(aws rds generate-db-auth-token \
+            --hostname "$DB_HOST" \
+            --port "$DB_PORT" \
+            --region "ap-northeast-1" \
+            --username "$CURRENT_USER" \
+            --profile prod 2>/dev/null)
     fi
-
-    TOKEN=$(aws rds generate-db-auth-token \
-        --hostname "$DB_HOST" \
-        --port "$DB_PORT" \
-        --region "ap-northeast-1" \
-        --username "$CURRENT_USER" \
-        --profile prod 2>/dev/null)
 
     if [ -n "$TOKEN" ]; then
         echo -n "$TOKEN" | copy_to_clipboard
-        echo "✅ Tunnel đã mở & Token đã copy vào Clipboard! (User: $CURRENT_USER)"
+        if [ -n "$STATIC_PASS" ]; then
+            echo "✅ Tunnel đã mở & Mật khẩu đã copy vào Clipboard!"
+        else
+            echo "✅ Tunnel đã mở & Token đã copy vào Clipboard! (User: $CURRENT_USER)"
+        fi
     else
         echo "❌ Lỗi: Không lấy được DB Token!"
         return 1 2>/dev/null || exit 1
@@ -263,7 +273,7 @@ run_menu() {
     echo "4. 🛢️  Mở đường hầm (Tunnel) DB: Illust"
     echo "5. 🛢️  Mở đường hầm (Tunnel) DB: Photo"
     echo "6. 🛢️  Mở đường hầm (Tunnel) DB: Common"
-    echo "7. 🛢️  Mở đường hầm (Tunnel) DB: Common Test"
+    echo "7. 🛢️  Mở đường hầm (Tunnel) DB: Common Test (Static Pass)"
     echo "=================================================="
     printf "👉 Chọn [1-7]: "
     read MENU_CHOICE
