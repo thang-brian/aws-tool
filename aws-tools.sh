@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="2.2.5"
+VERSION="2.2.6"
 REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/refs/heads/master"
 
 if [ -f "$HOME/.aws/aws-tools.env" ]; then
@@ -176,6 +176,32 @@ run_tunnel() {
     
     if is_port_in_use "$LOCAL_PORT"; then
         echo "❌ Lỗi: Cổng $LOCAL_PORT đang được sử dụng. Vui lòng tắt tiến trình hoặc đóng Tunnel cũ trước."
+        return 1 2>/dev/null || exit 1
+    fi
+
+    if [ -n "$STATIC_PASS" ]; then
+        TOKEN="$STATIC_PASS"
+        if [ -n "$STATIC_USER" ]; then DB_USER="$STATIC_USER"; fi
+        echo "✅ Lấy mật khẩu tĩnh thành công!"
+    else
+        CURRENT_USER=$(aws sts get-caller-identity --query Arn --output text --profile prod 2>/dev/null | awk -F/ '{print $NF}')
+        TOKEN=$(aws rds generate-db-auth-token \
+            --hostname "$DB_HOST" \
+            --port "$DB_PORT" \
+            --region "ap-northeast-1" \
+            --username "$CURRENT_USER" \
+            --profile prod 2>/dev/null)
+    fi
+
+    if [ -n "$TOKEN" ]; then
+        echo -n "$TOKEN" | copy_to_clipboard
+        if [ -n "$STATIC_PASS" ]; then
+            echo "✅ Mật khẩu đã copy vào Clipboard!"
+        else
+            echo "✅ Token đã copy vào Clipboard! (User: $CURRENT_USER)"
+        fi
+    else
+        echo "❌ Lỗi: Không lấy được DB Token!"
         return 1 2>/dev/null || exit 1
     fi
 
