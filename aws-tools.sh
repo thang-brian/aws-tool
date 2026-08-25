@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="2.3.1"
+VERSION="2.3.2"
 REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/refs/heads/master"
 
 if [ -f "$HOME/.aws/aws-tools.env" ]; then
@@ -352,8 +352,7 @@ run_menu() {
     echo "=================================================="
     echo "--- ĐĂNG NHẬP ---"
     echo "1. Đăng nhập qua Web / SSO (All in-One - Loại bỏ cơ chế Access keys)"
-    echo "👉 Với lần đăng nhập đầu tiên, có thể cần lệnh sau để tránh lỗi session cũ:"
-    echo "rm -rf ~/.aws/login/cache/*"
+    echo "👉 Lần sử dụng tool đầu tiên: rm -rf ~/.aws/login/cache/*"
     echo "--- KẾT NỐI SERVER & DB ---"
     echo "2. 🖥️  SSH vào Bastion Host (Giao diện CLI)"
     
