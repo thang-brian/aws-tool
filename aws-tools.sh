@@ -127,89 +127,60 @@ EOF_CONFIG
 # ==========================================
 # 3. DB TUNNEL & DBEAVER CONNECT LOGIC
 # ==========================================
+# ==========================================
+# DYNAMIC DB DISCOVERY
+# ==========================================
+if [ -n "$ZSH_VERSION" ]; then
+    DB_KEYS=($(set | grep "^DB_HOST_" | awk -F'=' '{print $1}' | sed 's/DB_HOST_//'))
+else
+    DB_KEYS=($(env | grep "^DB_HOST_" | awk -F'=' '{print $1}' | sed 's/DB_HOST_//'))
+    if [ ${#DB_KEYS[@]} -eq 0 ]; then
+        DB_KEYS=($(set | grep "^DB_HOST_" | awk -F'=' '{print $1}' | sed 's/DB_HOST_//'))
+    fi
+fi
+
 get_db_config() {
-    local target=$1
+    local target=$(echo "$1" | tr 'a-z' 'A-Z')
     STATIC_PASS=""
+    STATIC_USER=""
     DB_USER=""
     TOKEN=""
+    
+    eval "DB_HOST=\"\$DB_HOST_$target\""
+    eval "DB_PORT=\"\$DB_PORT_$target\""
+    eval "LOCAL_PORT=\"\$LOCAL_PORT_$target\""
+    eval "STATIC_USER=\"\$DB_USER_$target\""
+    eval "STATIC_PASS=\"\$DB_PASS_$target\""
+    eval "DB_DRIVER=\"\$DB_DRIVER_$target\""
+    eval "DB_NAME=\"\$DB_NAME_$target\""
+    eval "DBEAVER_NAME=\"\$DBEAVER_NAME_$target\""
 
-    case $target in
-        "illust")
-            DB_HOST="$DB_HOST_ILLUST"
-            DB_PORT="5432"
-            LOCAL_PORT="5432"
-            ;;
-        "photo")
-            DB_HOST="$DB_HOST_PHOTO"
-            DB_PORT="3306"
-            LOCAL_PORT="3306"
-            ;;
-        "common")
-            DB_HOST="$DB_HOST_COMMON"
-            DB_PORT="3306"
-            LOCAL_PORT="3307"
-            ;;
-        "common_test")
-            DB_HOST="$DB_HOST_COMMON_TEST"
-            DB_PORT="3306"
-            LOCAL_PORT="3308"
-            STATIC_PASS="$COMMON_TEST_DB_PASS"
-            ;;
-        "newyear")
-            DB_HOST="$DB_HOST_NEWYEAR"
-            DB_PORT="3306"
-            LOCAL_PORT="3309"
-            STATIC_PASS="$NEWYEAR_DB_PASS"
-            ;;
-        *)
-            echo "❌ Lỗi: Không tìm thấy DB '$target'"
-            return 1 2>/dev/null || exit 1
-            ;;
-    esac
+    if [ -z "$DB_PORT" ]; then DB_PORT="3306"; fi
+    if [ -z "$LOCAL_PORT" ]; then LOCAL_PORT="3306"; fi
+    if [ -z "$DB_DRIVER" ]; then DB_DRIVER="mysql8"; fi
+    if [ -z "$DBEAVER_NAME" ]; then DBEAVER_NAME="${1}_Auto"; fi
+
+    if [ -z "$DB_HOST" ]; then
+        echo "❌ Lỗi: Không tìm thấy DB_HOST_$target trong cấu hình!"
+        return 1 2>/dev/null || exit 1
+    fi
 }
 
+# ==========================================
+# 3. TUNNEL BASTION
+# ==========================================
 run_tunnel() {
     local target=$1
+    export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH
     get_db_config "$target" || return 1
     
-
-    if [ -n "$STATIC_PASS" ]; then
-        echo "⏳ Chế độ tĩnh: Đang lấy mật khẩu (không cần AWS Token)..."
-        TOKEN="$STATIC_PASS"
-    else
-        CURRENT_USER=$(aws sts get-caller-identity --query Arn --output text --profile prod 2>/dev/null | awk -F/ '{print $NF}')
-        if [ -z "$CURRENT_USER" ]; then
-            echo "❌ Lỗi: Không lấy được IAM User. Bạn đã login chưa?"
-            return 1 2>/dev/null || exit 1
-        fi
-
-        echo "⏳ Đang tạo Token đăng nhập DB cho user $CURRENT_USER..."
-        TOKEN=$(aws rds generate-db-auth-token \
-            --hostname "$DB_HOST" \
-            --port "$DB_PORT" \
-            --region "ap-northeast-1" \
-            --username "$CURRENT_USER" \
-            --profile prod 2>/dev/null)
-    fi
-
-    if [ -n "$TOKEN" ]; then
-        echo -n "$TOKEN" | copy_to_clipboard
-        echo "✅ Token đã được copy tự động vào Clipboard! (Nhấn Cmd+V / Ctrl+V để dán)"
-    else
-        echo "❌ Lỗi: Không tạo được Token. Vui lòng kiểm tra lại quyền IAM."
+    if is_port_in_use "$LOCAL_PORT"; then
+        echo "❌ Lỗi: Cổng $LOCAL_PORT đang được sử dụng. Vui lòng tắt tiến trình hoặc đóng Tunnel cũ trước."
         return 1 2>/dev/null || exit 1
     fi
 
-    echo "--------------------------------------------------"
-    echo "⏳ Đang mở Port Forwarding tới DB: $target"
-    echo "   📡 Bastion Host: $BASTION_ID"
-    echo "   🔌 Target DB: $DB_HOST:$DB_PORT"
-    echo "   💻 Local Port mở tại máy bạn: $LOCAL_PORT"
-    echo "--------------------------------------------------"
-    echo "⚠️  HẦM ĐÃ MỞ: Hãy giữ nguyên cửa sổ Terminal này để duy trì kết nối!"
-    echo "👉 Dùng DBeaver/DataGrip kết nối vào localhost:$LOCAL_PORT và dán Token vào ô Password."
-    echo "--------------------------------------------------"
-
+    echo "⏳ Đang mở đường hầm (Port Forwarding) qua Bastion tới $target..."
+    echo "🔑 Local Port: $LOCAL_PORT -> Remote Port: $DB_PORT"
     aws ssm start-session \
         --target "$BASTION_ID" \
         --document-name AWS-StartPortForwardingSessionToRemoteHost \
@@ -217,12 +188,14 @@ run_tunnel() {
         --profile prod
 }
 
+# ==========================================
+# 3.1 DBeaver TOKEN GENERATOR
+# ==========================================
 run_dbeaver() {
     local target=$1
     export PATH=/opt/homebrew/bin:/usr/local/bin:$PATH
     get_db_config "$target" || return 1
     
-
     if ! is_port_in_use "$LOCAL_PORT"; then
         echo "⏳ Tunnel chưa mở! Đang tự động mở ngầm Port Forwarding tới $target..."
         aws ssm start-session \
@@ -235,6 +208,7 @@ run_dbeaver() {
 
     if [ -n "$STATIC_PASS" ]; then
         TOKEN="$STATIC_PASS"
+        if [ -n "$STATIC_USER" ]; then DB_USER="$STATIC_USER"; fi
         echo "✅ Lấy mật khẩu tĩnh thành công!"
     else
         CURRENT_USER=$(aws sts get-caller-identity --query Arn --output text --profile prod 2>/dev/null | awk -F/ '{print $NF}')
@@ -279,8 +253,7 @@ run_auto_dbeaver() {
 
     if [ -n "$STATIC_PASS" ]; then
         TOKEN="$STATIC_PASS"
-        DB_USER="$COMMON_TEST_DB_USER"
-        if [ "$target" = "newyear" ]; then DB_USER="$NEWYEAR_DB_USER"; fi
+        if [ -n "$STATIC_USER" ]; then DB_USER="$STATIC_USER"; fi
         echo "✅ Lấy mật khẩu tĩnh thành công!"
     else
         CURRENT_USER=$(aws sts get-caller-identity --query Arn --output text --profile prod 2>/dev/null | awk -F/ '{print $NF}')
@@ -297,21 +270,9 @@ run_auto_dbeaver() {
     if [ -n "$TOKEN" ]; then
         echo "🚀 Đang gọi DBeaver mở Database $target..."
         
-        # Map to user's existing DBeaver connection names
-        local dbeaver_name="${target}_Auto"
-        case $target in
-            "illust") dbeaver_name="illust New" ;;
-            "photo") dbeaver_name="photo New" ;;
-            "common") dbeaver_name="common Test New" ;;
-            "common_test") dbeaver_name="common Test New" ;;
-            "newyear") dbeaver_name="newyear New" ;;
-        esac
-
-        local driver="mysql8"
         local db_param=""
-        if [ "$target" = "illust" ]; then 
-            driver="postgres-jdbc"
-            db_param="|database=acillustcom"
+        if [ -n "$DB_NAME" ]; then 
+            db_param="|database=$DB_NAME"
         fi
         
         # MacOS
@@ -324,10 +285,10 @@ run_auto_dbeaver() {
                 fi
             fi
             # Use create=false so it reuses the existing connection and its SSL config
-            eval "/Applications/DBeaver.app/Contents/MacOS/dbeaver $data_arg -con \"driver=$driver|name=$dbeaver_name|user=$DB_USER|password=$TOKEN${db_param}|create=false\"" &
+            eval "/Applications/DBeaver.app/Contents/MacOS/dbeaver $data_arg -con \"driver=$DB_DRIVER|name=$DBEAVER_NAME|user=$DB_USER|password=$TOKEN${db_param}|create=false\"" &
         # Windows Git Bash
         elif command -v dbeaver-cli &> /dev/null; then
-            dbeaver-cli -con "driver=$driver|name=$dbeaver_name|user=$DB_USER|password=$TOKEN${db_param}|create=false" &
+            dbeaver-cli -con "driver=$DB_DRIVER|name=$DBEAVER_NAME|user=$DB_USER|password=$TOKEN${db_param}|create=false" &
         else
             echo "❌ Lỗi: Không tìm thấy DBeaver trên máy."
         fi
@@ -365,14 +326,21 @@ run_menu() {
     echo "2. Đăng nhập qua MFA (Access Key cũ)"
     echo "--- KẾT NỐI SERVER & DB ---"
     echo "3. 🖥️  SSH vào Bastion Host (Giao diện CLI)"
-    echo "4. 🛢️  Mở đường hầm (Tunnel) DB: Illust"
-    echo "5. 🛢️  Tunnel -> Photo DB         (Port 3306)"
-    echo "6. 🛢️  Tunnel -> Common DB        (Port 3307)"
-    echo "7. 🛢️  Tunnel -> Common Test DB   (Port 3308)"
-    echo "8. 🛢️  Tunnel -> NewYear DB       (Port 3309)"
-    echo "9. 🚀 Auto-Connect DBeaver (Không cần Setup DBeaver)"
+    
+    local i=4
+    # Danh sách Tunnel động
+    for key in "${DB_KEYS[@]}"; do
+        eval "local port=\"\$LOCAL_PORT_$key\""
+        if [ -z "$port" ]; then port="3306"; fi
+        local display_name=$(echo "$key" | tr 'A-Z' 'a-z')
+        echo "$i. 🛢️  Tunnel -> $display_name DB (Port $port)"
+        i=$((i+1))
+    done
+
+    local auto_option=$i
+    echo "$auto_option. 🚀 Auto-Connect DBeaver (Không cần Setup DBeaver)"
     echo "=================================================="
-    printf "👉 Chọn [1-9]: "
+    printf "👉 Chọn [1-$auto_option]: "
     read MENU_CHOICE
 
     if [ "$MENU_CHOICE" = "1" ] || [ "$MENU_CHOICE" = "2" ]; then
@@ -395,7 +363,6 @@ run_menu() {
             echo "❌ Đăng nhập thất bại."
         fi
     elif [ "$MENU_CHOICE" = "2" ]; then
-        # ... logic MFA rút gọn ...
         if [ -f "$CRED_FILE" ]; then
             sed -i.bak '/# \[japandev\]/,/^$/ s/^# //' "$CRED_FILE"
             rm -f "${CRED_FILE}.bak"
@@ -419,31 +386,30 @@ run_menu() {
         echo "👉 sudo su - ec2-user"
         echo "--------------------------------------------------"
         aws ssm start-session --target "$BASTION_ID" --profile prod
-    elif [[ "$MENU_CHOICE" -ge 4 && "$MENU_CHOICE" -le 8 ]]; then
-        case $MENU_CHOICE in
-            4) run_tunnel "illust" ;;
-            5) run_tunnel "photo" ;;
-            6) run_tunnel "common" ;;
-            7) run_tunnel "common_test" ;;
-            8) run_tunnel "newyear" ;;
-        esac
-    elif [ "$MENU_CHOICE" = "9" ]; then
+    elif [[ "$MENU_CHOICE" -ge 4 && "$MENU_CHOICE" -lt $auto_option ]]; then
+        local index=$((MENU_CHOICE - 4))
+        local target_key="${DB_KEYS[$index]}"
+        local target=$(echo "$target_key" | tr 'A-Z' 'a-z')
+        run_tunnel "$target"
+    elif [ "$MENU_CHOICE" = "$auto_option" ]; then
         echo "Chọn DB muốn Auto-Connect:"
-        echo "1) illust"
-        echo "2) photo"
-        echo "3) common"
-        echo "4) common_test"
-        echo "5) newyear"
-        printf "👉 Chọn (1-5): "
+        local j=1
+        for key in "${DB_KEYS[@]}"; do
+            local display_name=$(echo "$key" | tr 'A-Z' 'a-z')
+            echo "$j) $display_name"
+            j=$((j+1))
+        done
+        printf "👉 Chọn (1-$((j-1))): "
         read DB_CHOICE
-        case $DB_CHOICE in
-            1) run_auto_dbeaver "illust" ;;
-            2) run_auto_dbeaver "photo" ;;
-            3) run_auto_dbeaver "common" ;;
-            4) run_auto_dbeaver "common_test" ;;
-            5) run_auto_dbeaver "newyear" ;;
-            *) echo "❌ Không hợp lệ." ;;
-        esac
+        
+        if [[ "$DB_CHOICE" -ge 1 && "$DB_CHOICE" -lt $j ]]; then
+            local index=$((DB_CHOICE - 1))
+            local target_key="${DB_KEYS[$index]}"
+            local target=$(echo "$target_key" | tr 'A-Z' 'a-z')
+            run_auto_dbeaver "$target"
+        else
+            echo "❌ Không hợp lệ."
+        fi
     else
         echo "❌ Không hợp lệ."
     fi
