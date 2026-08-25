@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="2.3.0"
+VERSION="2.3.1"
 REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/refs/heads/master"
 
 if [ -f "$HOME/.aws/aws-tools.env" ]; then
