@@ -211,7 +211,10 @@ run_tunnel() {
         --target "$BASTION_ID" \
         --document-name AWS-StartPortForwardingSessionToRemoteHost \
         --parameters "{\"host\":[\"$DB_HOST\"],\"portNumber\":[\"$DB_PORT\"],\"localPortNumber\":[\"$LOCAL_PORT\"]}" \
-        --profile prod
+        --profile prod > /dev/null 2>&1 &
+    
+    sleep 2
+    echo "✅ Tunnel đã chạy ngầm thành công! Bạn có thể tiếp tục dùng Tab này."
 }
 
 # ==========================================
@@ -389,16 +392,21 @@ run_menu() {
             echo "❌ Đăng nhập thất bại."
         fi
     elif [ "$MENU_CHOICE" = "2" ]; then
+        local target_profile="japandev"
         if [ -f "$CRED_FILE" ]; then
-            sed -i.bak '/# \[japandev\]/,/^$/ s/^# //' "$CRED_FILE"
+            # Nếu user không có [japandev] mà dùng [default]
+            if grep -q "# \[default\]" "$CRED_FILE" && ! grep -q "# \[japandev\]" "$CRED_FILE"; then
+                target_profile="default"
+            fi
+            sed -i.bak "/# \[$target_profile\]/,/^$/ s/^# //" "$CRED_FILE"
             rm -f "${CRED_FILE}.bak"
         fi
-        echo "🔍 Kiểm tra MFA..."
-        MFA_SERIAL=$(aws iam list-mfa-devices --profile japandev --output json 2>/dev/null | grep -o '"SerialNumber": "[^"]*' | cut -d'"' -f4)
-        if [ -z "$MFA_SERIAL" ]; then echo "❌ Lỗi MFA."; return 1 2>/dev/null || exit 1; fi
+        echo "🔍 Kiểm tra MFA (Profile: $target_profile)..."
+        MFA_SERIAL=$(aws iam list-mfa-devices --profile $target_profile --output json 2>/dev/null | grep -o '"SerialNumber": "[^"]*' | cut -d'"' -f4)
+        if [ -z "$MFA_SERIAL" ]; then echo "❌ Lỗi MFA. Không tìm thấy thiết bị MFA hoặc Access Key không hợp lệ!"; return 1 2>/dev/null || exit 1; fi
         printf "👉 Nhập mã MFA (6 số): "
         read TOKEN_CODE
-        CREDENTIALS_JSON=$(aws sts get-session-token --serial-number $MFA_SERIAL --token-code $TOKEN_CODE --profile japandev --duration-seconds 129600 --output json 2>/dev/null)
+        CREDENTIALS_JSON=$(aws sts get-session-token --serial-number $MFA_SERIAL --token-code $TOKEN_CODE --profile $target_profile --duration-seconds 129600 --output json 2>/dev/null)
         if [ $? -ne 0 ]; then echo "❌ Xác thực thất bại!"; return 1 2>/dev/null || exit 1; fi
         aws configure set profile.mfa.aws_access_key_id $(echo $CREDENTIALS_JSON | grep -o '"AccessKeyId": "[^"]*' | cut -d'"' -f4)
         aws configure set profile.mfa.aws_secret_access_key $(echo $CREDENTIALS_JSON | grep -o '"SecretAccessKey": "[^"]*' | cut -d'"' -f4)
