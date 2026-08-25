@@ -351,7 +351,9 @@ run_menu() {
     echo "🚀 BẢNG ĐIỀU KHIỂN TRUNG TÂM (AWS TOOLS) v$VERSION"
     echo "=================================================="
     echo "--- ĐĂNG NHẬP ---"
-    echo "1. Đăng nhập qua Web / SSO (Khuyên dùng)"
+    echo "1. Đăng nhập qua Web / SSO (All in-One - Loại bỏ cơ chế Access keys)"
+    echo "👉 Với lần đăng nhập đầu tiên, có thể cần lệnh sau để tránh lỗi session cũ:"
+    echo "rm -rf ~/.aws/login/cache/*"
     echo "--- KẾT NỐI SERVER & DB ---"
     echo "2. 🖥️  SSH vào Bastion Host (Giao diện CLI)"
     
