@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="2.2.7"
+VERSION="2.3.0"
 REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/refs/heads/master"
 
 if [ -f "$HOME/.aws/aws-tools.env" ]; then
@@ -351,12 +351,11 @@ run_menu() {
     echo "🚀 BẢNG ĐIỀU KHIỂN TRUNG TÂM (AWS TOOLS) v$VERSION"
     echo "=================================================="
     echo "--- ĐĂNG NHẬP ---"
-    echo "1. Đăng nhập qua Web / SSO (Khuyên dùng - No Key)"
-    echo "2. Đăng nhập qua MFA (Access Key cũ)"
+    echo "1. Đăng nhập qua Web / SSO (Khuyên dùng)"
     echo "--- KẾT NỐI SERVER & DB ---"
-    echo "3. 🖥️  SSH vào Bastion Host (Giao diện CLI)"
+    echo "2. 🖥️  SSH vào Bastion Host (Giao diện CLI)"
     
-    local i=4
+    local i=3
     # Danh sách Tunnel động
     for key in "${DB_KEYS[@]}"; do
         eval "local port=\"\$LOCAL_PORT_$key\""
@@ -372,17 +371,14 @@ run_menu() {
     printf "👉 Chọn [1-$auto_option]: "
     read MENU_CHOICE
 
-    if [ "$MENU_CHOICE" = "1" ] || [ "$MENU_CHOICE" = "2" ]; then
+    if [ "$MENU_CHOICE" = "1" ]; then
         unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_PROFILE
         CRED_FILE="$HOME/.aws/credentials"
         if [ -f "$CRED_FILE" ]; then
-            cp "$CRED_FILE" "${CRED_FILE}.bak"
-            sed -i.bak -e '/^[[:space:]]*$/! s/^\([^#]\)/# \1/' "$CRED_FILE"
-            rm -f "${CRED_FILE}.bak"
+            mv "$CRED_FILE" "${CRED_FILE}_bk_$(date +%Y%m%d_%H%M%S)"
+            echo "🗑️  Đã vô hiệu hóa file credentials cũ (chuyển thành credentials_bk) để an toàn 100%!"
         fi
-    fi
-
-    if [ "$MENU_CHOICE" = "1" ]; then
+        
         echo "🌍 Đang khởi động trình duyệt để đăng nhập SSO..."
         aws login --profile base
         if [ $? -eq 0 ]; then
@@ -392,36 +388,13 @@ run_menu() {
             echo "❌ Đăng nhập thất bại."
         fi
     elif [ "$MENU_CHOICE" = "2" ]; then
-        local target_profile="japandev"
-        if [ -f "$CRED_FILE" ]; then
-            # Nếu user không có [japandev] mà dùng [default]
-            if grep -q "# \[default\]" "$CRED_FILE" && ! grep -q "# \[japandev\]" "$CRED_FILE"; then
-                target_profile="default"
-            fi
-            sed -i.bak "/# \[$target_profile\]/,/^$/ s/^# //" "$CRED_FILE"
-            rm -f "${CRED_FILE}.bak"
-        fi
-        echo "🔍 Kiểm tra MFA (Profile: $target_profile)..."
-        MFA_SERIAL=$(aws iam list-mfa-devices --profile $target_profile --output json 2>/dev/null | grep -o '"SerialNumber": "[^"]*' | cut -d'"' -f4)
-        if [ -z "$MFA_SERIAL" ]; then echo "❌ Lỗi MFA. Không tìm thấy thiết bị MFA hoặc Access Key không hợp lệ!"; return 1 2>/dev/null || exit 1; fi
-        printf "👉 Nhập mã MFA (6 số): "
-        read TOKEN_CODE
-        CREDENTIALS_JSON=$(aws sts get-session-token --serial-number $MFA_SERIAL --token-code $TOKEN_CODE --profile $target_profile --duration-seconds 129600 --output json 2>/dev/null)
-        if [ $? -ne 0 ]; then echo "❌ Xác thực thất bại!"; return 1 2>/dev/null || exit 1; fi
-        aws configure set profile.mfa.aws_access_key_id $(echo $CREDENTIALS_JSON | grep -o '"AccessKeyId": "[^"]*' | cut -d'"' -f4)
-        aws configure set profile.mfa.aws_secret_access_key $(echo $CREDENTIALS_JSON | grep -o '"SecretAccessKey": "[^"]*' | cut -d'"' -f4)
-        aws configure set profile.mfa.aws_session_token $(echo $CREDENTIALS_JSON | grep -o '"SessionToken": "[^"]*' | cut -d'"' -f4)
-        aws configure set profile.mfa.region ap-northeast-1
-        export AWS_PROFILE=mfa
-        echo "✅ Đã lưu phiên bản vào profile [mfa]!"
-    elif [ "$MENU_CHOICE" = "3" ]; then
         echo "--------------------------------------------------"
         echo "💡 MẸO: Khi màn hình hiện chữ sh-4.2$, hãy gõ lệnh sau để lấy lại giao diện cũ:"
         echo "👉 sudo su - ec2-user"
         echo "--------------------------------------------------"
         aws ssm start-session --target "$BASTION_ID" --profile prod
-    elif [[ "$MENU_CHOICE" -ge 4 && "$MENU_CHOICE" -lt $auto_option ]]; then
-        local current_i=4
+    elif [[ "$MENU_CHOICE" -ge 3 && "$MENU_CHOICE" -lt $auto_option ]]; then
+        local current_i=3
         for key in "${DB_KEYS[@]}"; do
             if [ "$current_i" -eq "$MENU_CHOICE" ]; then
                 local target=$(echo "$key" | tr 'A-Z' 'a-z')
