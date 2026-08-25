@@ -387,10 +387,15 @@ run_menu() {
         echo "--------------------------------------------------"
         aws ssm start-session --target "$BASTION_ID" --profile prod
     elif [[ "$MENU_CHOICE" -ge 4 && "$MENU_CHOICE" -lt $auto_option ]]; then
-        local index=$((MENU_CHOICE - 4))
-        local target_key="${DB_KEYS[$index]}"
-        local target=$(echo "$target_key" | tr 'A-Z' 'a-z')
-        run_tunnel "$target"
+        local current_i=4
+        for key in "${DB_KEYS[@]}"; do
+            if [ "$current_i" -eq "$MENU_CHOICE" ]; then
+                local target=$(echo "$key" | tr 'A-Z' 'a-z')
+                run_tunnel "$target"
+                break
+            fi
+            current_i=$((current_i+1))
+        done
     elif [ "$MENU_CHOICE" = "$auto_option" ]; then
         echo "Chọn DB muốn Auto-Connect:"
         local j=1
@@ -403,10 +408,15 @@ run_menu() {
         read DB_CHOICE
         
         if [[ "$DB_CHOICE" -ge 1 && "$DB_CHOICE" -lt $j ]]; then
-            local index=$((DB_CHOICE - 1))
-            local target_key="${DB_KEYS[$index]}"
-            local target=$(echo "$target_key" | tr 'A-Z' 'a-z')
-            run_auto_dbeaver "$target"
+            local current_j=1
+            for key in "${DB_KEYS[@]}"; do
+                if [ "$current_j" -eq "$DB_CHOICE" ]; then
+                    local target=$(echo "$key" | tr 'A-Z' 'a-z')
+                    run_auto_dbeaver "$target"
+                    break
+                fi
+                current_j=$((current_j+1))
+            done
         else
             echo "❌ Không hợp lệ."
         fi
