@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="2.3.2"
+VERSION="2.4.0"
 REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/refs/heads/master"
 
 if [ -f "$HOME/.aws/aws-tools.env" ]; then
@@ -355,21 +355,10 @@ run_menu() {
     echo "👉 Lần sử dụng tool đầu tiên: rm -rf ~/.aws/login/cache/*"
     echo "--- KẾT NỐI SERVER & DB ---"
     echo "2. 🖥️  SSH vào Bastion Host (Giao diện CLI)"
-    
-    local i=3
-    # Danh sách Tunnel động
-    for key in "${DB_KEYS[@]}"; do
-        eval "local port=\"\$LOCAL_PORT_$key\""
-        if [ -z "$port" ]; then port="3306"; fi
-        local display_name=$(echo "$key" | tr 'A-Z' 'a-z')
-        echo "$i. 🛢️  Tunnel -> $display_name DB (Port $port)"
-        i=$((i+1))
-    done
-
-    local auto_option=$i
-    echo "$auto_option. 🚀 Auto-Connect DBeaver (Không cần Setup DBeaver)"
+    echo "3. 🛢️  Mở đường hầm (Tunnel) thủ công tới Database"
+    echo "4. 🚀 Auto-Connect DBeaver (Không cần Setup DBeaver)"
     echo "=================================================="
-    printf "👉 Chọn [1-$auto_option]: "
+    printf "👉 Chọn [1-4]: "
     read MENU_CHOICE
 
     if [ "$MENU_CHOICE" = "1" ]; then
@@ -394,22 +383,19 @@ run_menu() {
         echo "👉 sudo su - ec2-user"
         echo "--------------------------------------------------"
         aws ssm start-session --target "$BASTION_ID" --profile prod
-    elif [[ "$MENU_CHOICE" -ge 3 && "$MENU_CHOICE" -lt $auto_option ]]; then
-        local current_i=3
-        for key in "${DB_KEYS[@]}"; do
-            if [ "$current_i" -eq "$MENU_CHOICE" ]; then
-                local target=$(echo "$key" | tr 'A-Z' 'a-z')
-                run_tunnel "$target"
-                break
-            fi
-            current_i=$((current_i+1))
-        done
-    elif [ "$MENU_CHOICE" = "$auto_option" ]; then
-        echo "Chọn DB muốn Auto-Connect:"
+    elif [ "$MENU_CHOICE" = "3" ] || [ "$MENU_CHOICE" = "4" ]; then
+        if [ "$MENU_CHOICE" = "3" ]; then
+            echo "Chọn DB muốn mở Tunnel thủ công:"
+        else
+            echo "Chọn DB muốn Auto-Connect:"
+        fi
+        
         local j=1
         for key in "${DB_KEYS[@]}"; do
             local display_name=$(echo "$key" | tr 'A-Z' 'a-z')
-            echo "$j) $display_name"
+            eval "local port=\"\$LOCAL_PORT_$key\""
+            if [ -z "$port" ]; then port="3306"; fi
+            echo "$j) $display_name (Port $port)"
             j=$((j+1))
         done
         printf "👉 Chọn (1-$((j-1))): "
@@ -420,13 +406,17 @@ run_menu() {
             for key in "${DB_KEYS[@]}"; do
                 if [ "$current_j" -eq "$DB_CHOICE" ]; then
                     local target=$(echo "$key" | tr 'A-Z' 'a-z')
-                    run_auto_dbeaver "$target"
+                    if [ "$MENU_CHOICE" = "3" ]; then
+                        run_tunnel "$target"
+                    else
+                        run_auto_dbeaver "$target"
+                    fi
                     break
                 fi
                 current_j=$((current_j+1))
             done
         else
-            echo "❌ Không hợp lệ."
+            echo "❌ Lựa chọn không hợp lệ."
         fi
     else
         echo "❌ Không hợp lệ."
