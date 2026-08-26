@@ -184,13 +184,13 @@ run_tunnel() {
         if [ -n "$STATIC_USER" ]; then DB_USER="$STATIC_USER"; fi
         echo "✅ Lấy mật khẩu tĩnh thành công!"
     else
-        CURRENT_USER=$(aws sts get-caller-identity --query Arn --output text --profile prod 2>/dev/null | awk -F/ '{print $NF}')
+        CURRENT_USER=$(aws sts get-caller-identity --query Arn --output text --profile default 2>/dev/null | awk -F/ '{print $NF}')
         TOKEN=$(aws rds generate-db-auth-token \
             --hostname "$DB_HOST" \
             --port "$DB_PORT" \
             --region "ap-northeast-1" \
             --username "$CURRENT_USER" \
-            --profile prod 2>/dev/null)
+            --profile default 2>/dev/null)
     fi
 
     if [ -n "$TOKEN" ]; then
@@ -240,13 +240,13 @@ run_dbeaver() {
         if [ -n "$STATIC_USER" ]; then DB_USER="$STATIC_USER"; fi
         echo "✅ Lấy mật khẩu tĩnh thành công!"
     else
-        CURRENT_USER=$(aws sts get-caller-identity --query Arn --output text --profile prod 2>/dev/null | awk -F/ '{print $NF}')
+        CURRENT_USER=$(aws sts get-caller-identity --query Arn --output text --profile default 2>/dev/null | awk -F/ '{print $NF}')
         TOKEN=$(aws rds generate-db-auth-token \
             --hostname "$DB_HOST" \
             --port "$DB_PORT" \
             --region "ap-northeast-1" \
             --username "$CURRENT_USER" \
-            --profile prod 2>/dev/null)
+            --profile default 2>/dev/null)
     fi
 
     if [ -n "$TOKEN" ]; then
@@ -285,14 +285,14 @@ run_auto_dbeaver() {
         if [ -n "$STATIC_USER" ]; then DB_USER="$STATIC_USER"; fi
         echo "✅ Lấy mật khẩu tĩnh thành công!"
     else
-        CURRENT_USER=$(aws sts get-caller-identity --query Arn --output text --profile prod 2>/dev/null | awk -F/ '{print $NF}')
+        CURRENT_USER=$(aws sts get-caller-identity --query Arn --output text --profile default 2>/dev/null | awk -F/ '{print $NF}')
         DB_USER="$CURRENT_USER"
         TOKEN=$(aws rds generate-db-auth-token \
             --hostname "$DB_HOST" \
             --port "$DB_PORT" \
             --region "ap-northeast-1" \
             --username "$CURRENT_USER" \
-            --profile prod 2>/dev/null)
+            --profile default 2>/dev/null)
         echo "✅ Sinh IAM Token thành công!"
     fi
 
