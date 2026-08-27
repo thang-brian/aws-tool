@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="2.4.2"
+VERSION="2.4.3"
 REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/refs/heads/master"
 
 if [ -f "$HOME/.aws/aws-tools.env" ]; then
@@ -379,10 +379,13 @@ run_menu() {
         fi
     elif [ "$MENU_CHOICE" = "2" ]; then
         echo "--------------------------------------------------"
-        echo "💡 MẸO: Khi màn hình hiện chữ sh-4.2$, hãy gõ lệnh sau để lấy lại giao diện cũ:"
-        echo "👉 sudo su - ec2-user"
+        echo "💡 Đang tự động đăng nhập vào ec2-user..."
         echo "--------------------------------------------------"
-        aws ssm start-session --target "$BASTION_ID" --profile prod
+        aws ssm start-session \
+            --target "$BASTION_ID" \
+            --document-name AWS-StartInteractiveCommand \
+            --parameters command="sudo su - ec2-user" \
+            --profile prod
     elif [ "$MENU_CHOICE" = "3" ] || [ "$MENU_CHOICE" = "4" ]; then
         if [ "$MENU_CHOICE" = "3" ]; then
             echo "Chọn DB muốn mở Tunnel thủ công:"
