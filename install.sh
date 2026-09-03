@@ -85,6 +85,15 @@ fi
 
 chmod +x "$INSTALL_DIR/aws-tools.sh"
 
+# 2.5 Tải chứng chỉ SSL AWS RDS cho DBeaver (Dùng chung 2 máy)
+if [ -d "/Users/Shared" ]; then
+    if [ ! -f "/Users/Shared/ap-northeast-1-bundle.pem" ]; then
+        echo "⬇️  Đang tải chứng chỉ SSL AWS RDS cho DBeaver..."
+        curl -sL "https://truststore.pki.rds.amazonaws.com/ap-northeast-1/ap-northeast-1-bundle.pem" -o "/Users/Shared/ap-northeast-1-bundle.pem"
+        chmod 644 "/Users/Shared/ap-northeast-1-bundle.pem"
+    fi
+fi
+
 # 3. Tạo Alias trong Profile File (Đa nền tảng cho Mac/Zsh và Windows/Bash)
 PROFILE_FILE="$HOME/.bashrc"
 if [[ "$SHELL" == *"zsh"* ]] || [ -f "$HOME/.zshrc" ]; then
