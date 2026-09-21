@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="2.4.6"
+VERSION="2.4.7"
 REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/refs/heads/master"
 
 if [ -f "$HOME/.aws/aws-tools.env" ]; then
@@ -379,9 +379,12 @@ run_menu() {
             echo "❌ Đăng nhập thất bại."
         fi
     elif [ "$MENU_CHOICE" = "2" ]; then
-        echo "⏳ Đang kết nối tới Bastion và chuyển sang ec2-user..."
-        # Mở shell interactive và tự động switch user
-        (echo "sudo su - ec2-user"; cat) | aws ssm start-session --target "$BASTION_ID" --profile prod
+        echo "⏳ Đang kết nối tới Bastion và tự động đổi sang ec2-user..."
+        aws ssm start-session \
+            --target "$BASTION_ID" \
+            --document-name AWS-StartInteractiveCommand \
+            --parameters command="sudo su - ec2-user" \
+            --profile prod
     elif [ "$MENU_CHOICE" = "3" ] || [ "$MENU_CHOICE" = "4" ]; then
         if [ "$MENU_CHOICE" = "3" ]; then
             echo "Chọn DB muốn mở Tunnel thủ công:"
