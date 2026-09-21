@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="2.4.9"
+VERSION="2.4.10"
 REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/refs/heads/master"
 
 if [ -f "$HOME/.aws/aws-tools.env" ]; then
@@ -381,14 +381,25 @@ run_menu() {
     elif [ "$MENU_CHOICE" = "2" ]; then
         echo "⏳ Đang kết nối tới Bastion..."
         python3 -c '
-import pty, os, sys, select
+import pty, os, sys, select, signal, fcntl, termios, tty
+
+def sync_win_size(fd):
+    try:
+        # Lấy kích thước cửa sổ hiện tại của terminal và gán sang pty
+        size = fcntl.ioctl(sys.stdin.fileno(), termios.TIOCGWINSZ, b"\0" * 8)
+        fcntl.ioctl(fd, termios.TIOCSWINSZ, size)
+    except Exception:
+        pass
 
 pid, fd = pty.fork()
 if pid == 0:
     os.execvp("aws", ["aws", "ssm", "start-session", "--target", "'"$BASTION_ID"'", "--profile", "prod"])
 
+# Đồng bộ size ngay lúc khởi tạo và mỗi khi resize cửa sổ
+sync_win_size(fd)
+signal.signal(signal.SIGWINCH, lambda signum, frame: sync_win_size(fd))
+
 switched = False
-import tty, termios
 old_settings = termios.tcgetattr(sys.stdin)
 tty.setraw(sys.stdin)
 
@@ -404,7 +415,6 @@ try:
             if not data: break
             os.write(sys.stdout.fileno(), data)
             sys.stdout.flush()
-            # Bắt đúng lúc terminal remote đã sẵn sàng (xuất hiện sh-4.2$ hoặc dấu $)
             if not switched and (b"sh-4.2$" in data or b"$ " in data):
                 os.write(fd, b"sudo su - ec2-user\n")
                 switched = True
