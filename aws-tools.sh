@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="2.4.8"
+VERSION="2.4.9"
 REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/refs/heads/master"
 
 if [ -f "$HOME/.aws/aws-tools.env" ]; then
@@ -379,14 +379,38 @@ run_menu() {
             echo "❌ Đăng nhập thất bại."
         fi
     elif [ "$MENU_CHOICE" = "2" ]; then
-        echo "⏳ Đang kết nối tới Bastion và tự động đổi sang ec2-user..."
-        # macOS dùng cú pháp: script -q /dev/null ...
-        # Linux/Git Bash dùng: script -q -c ... /dev/null
-        if [[ "$OSTYPE" == "darwin"* ]]; then
-            script -q /dev/null bash -c '(sleep 1; echo "sudo su - ec2-user") & exec aws ssm start-session --target "'"$BASTION_ID"'" --profile prod'
-        else
-            script -q -c 'bash -c "(sleep 1; echo \"sudo su - ec2-user\") & exec aws ssm start-session --target \"'"$BASTION_ID"'\" --profile prod"' /dev/null
-        fi
+        echo "⏳ Đang kết nối tới Bastion..."
+        python3 -c '
+import pty, os, sys, select
+
+pid, fd = pty.fork()
+if pid == 0:
+    os.execvp("aws", ["aws", "ssm", "start-session", "--target", "'"$BASTION_ID"'", "--profile", "prod"])
+
+switched = False
+import tty, termios
+old_settings = termios.tcgetattr(sys.stdin)
+tty.setraw(sys.stdin)
+
+try:
+    while True:
+        r, _, _ = select.select([sys.stdin, fd], [], [])
+        if sys.stdin in r:
+            data = os.read(sys.stdin.fileno(), 1024)
+            if not data: break
+            os.write(fd, data)
+        if fd in r:
+            data = os.read(fd, 1024)
+            if not data: break
+            os.write(sys.stdout.fileno(), data)
+            sys.stdout.flush()
+            # Bắt đúng lúc terminal remote đã sẵn sàng (xuất hiện sh-4.2$ hoặc dấu $)
+            if not switched and (b"sh-4.2$" in data or b"$ " in data):
+                os.write(fd, b"sudo su - ec2-user\n")
+                switched = True
+finally:
+    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+'
     elif [ "$MENU_CHOICE" = "3" ] || [ "$MENU_CHOICE" = "4" ]; then
         if [ "$MENU_CHOICE" = "3" ]; then
             echo "Chọn DB muốn mở Tunnel thủ công:"
