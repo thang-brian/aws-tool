@@ -9,6 +9,12 @@ SSH_SERVERS_FILE = os.path.expanduser("~/.aws/ssh-servers.json")
 SSH_CONFIG_FILE = os.path.expanduser("~/.ssh/config")
 VSCODE_SETTINGS_FILE = os.path.expanduser("~/Library/Application Support/Code/User/settings.json")
 
+def safe_input(prompt=""):
+    try:
+        return input(prompt).strip()
+    except (KeyboardInterrupt, EOFError):
+        return None
+
 def get_bastion_id():
     b_id = os.environ.get("BASTION_ID", "")
     if not b_id:
@@ -172,23 +178,51 @@ def main():
             print("  d) 🗑️  Xóa Server (Delete)")
         print("  b) 🔙 Quay lại Menu chính")
         print("==================================================")
-        choice = input(f"👉 Chọn (1-{len(servers)} để kết nối, hoặc a/e/d/b): ").strip()
+        choice = safe_input(f"👉 Chọn (1-{len(servers)} để kết nối, hoặc a/e/d/b): ")
 
-        if choice.lower() == "b":
+        if choice is None or choice.lower() == "b":
             break
         elif choice.lower() == "a":
-            name = input("👉 Nhập tên gợi nhớ: ").strip()
+            name = safe_input("👉 Nhập tên gợi nhớ: ")
+            if name is None:
+                print("\n⚠️ Đã hủy thêm server.")
+                continue
             if not name:
                 print("❌ Tên không được để trống!")
                 continue
-            host = input("👉 Nhập IP nội bộ: ").strip()
+
+            host = safe_input("👉 Nhập IP nội bộ: ")
+            if host is None:
+                print("\n⚠️ Đã hủy thêm server.")
+                continue
             if not host:
                 print("❌ IP không được để trống!")
                 continue
-            root = input("👉 Thư mục code từ xa [Enter để mặc định /home/ec2-user]: ").strip() or "/home/ec2-user"
-            sw = input("👉 User chuyển quyền Terminal [Enter để mặc định git]: ").strip() or "git"
-            usr = input("👉 User SSH kết nối [Enter để mặc định ec2-user]: ").strip() or "ec2-user"
-            key = input("👉 Đường dẫn Private Key [Enter để bỏ qua nếu dùng key mặc định]: ").strip()
+
+            root_in = safe_input("👉 Thư mục code từ xa [Enter để mặc định /home/ec2-user]: ")
+            if root_in is None:
+                print("\n⚠️ Đã hủy thêm server.")
+                continue
+            root = root_in or "/home/ec2-user"
+
+            sw_in = safe_input("👉 User chuyển quyền Terminal [Enter để mặc định git]: ")
+            if sw_in is None:
+                print("\n⚠️ Đã hủy thêm server.")
+                continue
+            sw = sw_in or "git"
+
+            usr_in = safe_input("👉 User SSH kết nối [Enter để mặc định ec2-user]: ")
+            if usr_in is None:
+                print("\n⚠️ Đã hủy thêm server.")
+                continue
+            usr = usr_in or "ec2-user"
+
+            key_in = safe_input("👉 Đường dẫn Private Key [Enter để bỏ qua nếu dùng key mặc định]: ")
+            if key_in is None:
+                print("\n⚠️ Đã hủy thêm server.")
+                continue
+            key = key_in
+
             port = get_next_port(servers)
 
             new_server = {
@@ -206,7 +240,10 @@ def main():
             print(f"✅ Đã tự động cập nhật ~/.ssh/config & VS Code!")
             start_tunnel(new_server)
         elif choice.lower() == "d" and servers:
-            idx = input(f"👉 Nhập số thứ tự Server muốn xóa (1-{len(servers)}): ").strip()
+            idx = safe_input(f"👉 Nhập số thứ tự Server muốn xóa (1-{len(servers)}): ")
+            if idx is None:
+                print("\n⚠️ Đã hủy xóa server.")
+                continue
             if idx.isdigit() and 1 <= int(idx) <= len(servers):
                 deleted = servers.pop(int(idx) - 1)
                 save_servers(servers)
@@ -214,14 +251,32 @@ def main():
             else:
                 print("❌ Số thứ tự không hợp lệ!")
         elif choice.lower() == "e" and servers:
-            idx = input(f"👉 Nhập số thứ tự Server muốn sửa (1-{len(servers)}): ").strip()
+            idx = safe_input(f"👉 Nhập số thứ tự Server muốn sửa (1-{len(servers)}): ")
+            if idx is None:
+                print("\n⚠️ Đã hủy sửa server.")
+                continue
             if idx.isdigit() and 1 <= int(idx) <= len(servers):
                 s = servers[int(idx) - 1]
-                name = input(f"👉 Tên [{s['name']}]: ").strip() or s["name"]
-                host = input(f"👉 IP nội bộ [{s['host']}]: ").strip() or s["host"]
-                root = input(f"👉 Thư mục code [{s.get('root', '/')}]: ").strip() or s.get("root", "/")
-                sw = input(f"👉 User chuyển quyền [{s.get('switch_user', 'git')}]: ").strip() or s.get("switch_user", "git")
-                key = input(f"👉 File Key [{s.get('key', '')}]: ").strip() or s.get("key", "")
+                name = safe_input(f"👉 Tên [{s['name']}]: ")
+                if name is None: continue
+                name = name or s["name"]
+
+                host = safe_input(f"👉 IP nội bộ [{s['host']}]: ")
+                if host is None: continue
+                host = host or s["host"]
+
+                root = safe_input(f"👉 Thư mục code [{s.get('root', '/')}]: ")
+                if root is None: continue
+                root = root or s.get("root", "/")
+
+                sw = safe_input(f"👉 User chuyển quyền [{s.get('switch_user', 'git')}]: ")
+                if sw is None: continue
+                sw = sw or s.get("switch_user", "git")
+
+                key = safe_input(f"👉 File Key [{s.get('key', '')}]: ")
+                if key is None: continue
+                key = key or s.get("key", "")
+
                 s["name"] = name
                 s["host"] = host
                 s["root"] = root
@@ -236,7 +291,10 @@ def main():
             print(f"\n--- THAO TÁC VỚI [{s['name']}] ---")
             print(f"1. 🖥️  Mở Terminal SSH (user {s.get('switch_user', 'git')})")
             print(f"2. 🛢️  Mở đường hầm Tunnel (Port {s['port']} cho VS Code SSH FS)")
-            act = input("👉 Chọn [1-2]: ").strip()
+            act = safe_input("👉 Chọn [1-2]: ")
+            if act is None:
+                print("\n⚠️ Đã hủy.")
+                continue
             if act == "1":
                 start_tunnel(s)
                 sw_cmd = f"cd {s.get('root', '/')} && sudo su {s.get('switch_user', 'git')}"
@@ -247,4 +305,11 @@ def main():
             print("❌ Lựa chọn không hợp lệ!")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (KeyboardInterrupt, EOFError):
+        print("\n\n👋 Đã thoát.")
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n❌ Đã xảy ra lỗi: {e}")
+        sys.exit(1)
