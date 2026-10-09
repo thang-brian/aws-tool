@@ -78,6 +78,8 @@ CACHE_BUST="?t=$(date +%s)"
 echo "⬇️  Đang tải mã nguồn mới nhất..."
 if command -v curl &> /dev/null; then
     curl -sL "$REPO_RAW_URL/aws-tools.sh${CACHE_BUST}" -o "$INSTALL_DIR/aws-tools.sh"
+    curl -sL "$REPO_RAW_URL/ssh-manager.py${CACHE_BUST}" -o "$INSTALL_DIR/ssh-manager.py"
+    chmod +x "$INSTALL_DIR/ssh-manager.py"
 else
     echo "❌ Lỗi: Cần cài đặt lệnh 'curl' để có thể tải code từ Github!"
     exit 1
