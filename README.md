@@ -51,3 +51,15 @@ Nếu bạn dùng tool khác không có tính năng Before Connection, bạn có
 - `aws-tools tunnel photo` (Mở hầm cho db photo)
 - `aws-tools dbeaver common` (Mở hầm & Copy Token DB common)
 - `aws-tools ssh /path/to/key.pem` (Kết nối SSH cũ qua Bastion - Nếu cần)
+- `aws-tools server` (Quản lý CRUD Server EC2 & VS Code)
+
+## 6. Code trực tiếp trên Server EC2 qua VS Code (SSH FS)
+Tool hỗ trợ mount thẳng thư mục code trên Server EC2 (kể cả Amazon Linux 2 cũ) vào VS Code qua giao thức SSH FS (SFTP) mà không cần cài đặt bất kỳ bộ cài nào lên Server:
+1. Mở `aws-tools` chọn **5** (hoặc gõ `aws-tools server`).
+2. Chọn số server muốn làm việc -> chọn **[2]** để bật Tunnel ngầm (hiện icon 🟢).
+3. Trên **VS Code**:
+   - Bấm: `Cmd + Shift + P` -> gõ `SSH FS: Add as Workspace folder` -> chọn tên server.
+   - Toàn bộ cây thư mục code dự án sẽ xuất hiện trên thanh Explorer bên trái để chỉnh sửa trực tiếp.
+4. Mở **Terminal**:
+   - Bấm `Ctrl + ~` -> bấm mũi tên xổ xuống `v` ở góc phải Terminal -> chọn tên server để vào thẳng thư mục dự án với quyền user `git`!
+

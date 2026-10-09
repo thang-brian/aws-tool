@@ -176,12 +176,32 @@ def main():
         if servers:
             print("  e) ✏️  Sửa Server (Edit)")
             print("  d) 🗑️  Xóa Server (Delete)")
+        print("  h) 📖 Hướng dẫn mở trên VS Code (SSH FS)")
         print("  b) 🔙 Quay lại Menu chính")
         print("==================================================")
-        choice = safe_input(f"👉 Chọn (1-{len(servers)} để kết nối, hoặc a/e/d/b): ")
+        choice = safe_input(f"👉 Chọn (1-{len(servers)} để kết nối, hoặc a/e/d/h/b): ")
 
         if choice is None or choice.lower() == "b":
             break
+        elif choice.lower() == "h":
+            print("\n==================================================")
+            print("📖 HƯỚNG DẪN MỞ CODE TRÊN VS CODE (SSH FS)")
+            print("==================================================")
+            print("1. Đảm bảo Tunnel đã bật (có icon 🟢 ở danh sách server).")
+            print("   -> Nếu icon là ⚪, bạn chọn số server đó rồi chọn [2] để bật.")
+            print("")
+            print("2. Mở thư mục code trong VS Code:")
+            print("   - Trên VS Code, bấm: Cmd + Shift + P")
+            print("   - Gõ: SSH FS: Add as Workspace folder")
+            print("   - Chọn tên server (VD: photo-ac-thang, illust-ac-thang...)")
+            print("   => Toàn bộ file dự án sẽ hiện ngay trên Explorer bên trái!")
+            print("")
+            print("3. Mở Terminal với quyền user 'git':")
+            print("   - Bấm: Ctrl + ~ (để mở Terminal)")
+            print("   - Bấm mũi tên xổ xuống [v] cạnh dấu [+] ở góc phải Terminal")
+            print("   - Chọn đúng tên server để vào thẳng thư mục code!")
+            print("==================================================")
+            safe_input("👉 Nhấn Enter để quay lại...")
         elif choice.lower() == "a":
             name = safe_input("👉 Nhập tên gợi nhớ: ")
             if name is None:

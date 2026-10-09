@@ -96,6 +96,15 @@ if [ -d "/Users/Shared" ]; then
     fi
 fi
 
+# 2.6 Tự động cài đặt Extension SSH FS cho VS Code (nếu máy có VS Code)
+if command -v code &> /dev/null; then
+    echo "📦 Đang tự động cài đặt Extension SSH FS cho VS Code..."
+    code --install-extension Kelvin.vscode-sshfs --force >/dev/null 2>&1
+elif [ -d "/Applications/Visual Studio Code.app" ]; then
+    echo "📦 Đang tự động cài đặt Extension SSH FS cho VS Code..."
+    "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code" --install-extension Kelvin.vscode-sshfs --force >/dev/null 2>&1
+fi
+
 # 3. Tạo Alias trong Profile File (Đa nền tảng cho Mac/Zsh và Windows/Bash)
 PROFILE_FILE="$HOME/.bashrc"
 if [[ "$SHELL" == *"zsh"* ]] || [ -f "$HOME/.zshrc" ]; then
