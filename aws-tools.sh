@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION="2.4.10"
+VERSION="2.5.0"
 REPO_RAW_URL="https://raw.githubusercontent.com/thang-brian/aws-tool/refs/heads/master"
 
 if [ -f "$HOME/.aws/aws-tools.env" ]; then
@@ -346,6 +346,203 @@ run_ssh_bastion() {
 # ==========================================
 # 5. MAIN MENU
 # ==========================================
+# ==========================================
+# 4.1 SSH SERVERS & VS CODE MANAGER (CRUD)
+# ==========================================
+manage_ssh_servers() {
+    python3 -c '
+import json, os, sys, subprocess, re
+
+ssh_servers_file = os.path.expanduser("~/.aws/ssh-servers.json")
+bastion_id = os.environ.get("BASTION_ID", "i-082dce83c6a043395")
+
+def load_servers():
+    if not os.path.exists(ssh_servers_file):
+        default_s = [
+            {"name": "photo-ac-thang", "host": "172.30.6.197", "port": 2222, "user": "ec2-user", "switch_user": "git", "root": "/ebs1/photo-ac-thang", "key": "/Users/Shared/DB_Keys/newyear.pem"},
+            {"name": "illust-ac-thang", "host": "172.30.6.81", "port": 2223, "user": "ec2-user", "switch_user": "git", "root": "/ebs1/projects/illust-ac-thang", "key": "/Users/Shared/DB_Keys/newyear.pem"}
+        ]
+        save_servers(default_s)
+        return default_s
+    try:
+        with open(ssh_servers_file, "r") as f:
+            return json.load(f)
+    except:
+        return []
+
+def save_servers(servers):
+    os.makedirs(os.path.dirname(ssh_servers_file), exist_ok=True)
+    with open(ssh_servers_file, "w") as f:
+        json.dump(servers, f, indent=2)
+    sync_all(servers)
+
+def sync_all(servers):
+    # 1. Sync ~/.ssh/config
+    ssh_config_file = os.path.expanduser("~/.ssh/config")
+    if os.path.exists(ssh_config_file):
+        with open(ssh_config_file, "r") as f:
+            content = f.read()
+        marker_start = "# --- MANAGED SSH SERVERS (START) ---"
+        marker_end = "# --- MANAGED SSH SERVERS (END) ---"
+        new_block_lines = [marker_start]
+        for s in servers:
+            new_block_lines.extend([
+                f"Host {s["name"]}",
+                f"  HostName {s["host"]}",
+                f"  User {s.get("user", "ec2-user")}",
+                f"  IdentityFile {s.get("key", "/Users/Shared/DB_Keys/newyear.pem")}",
+                "  ProxyJump bastion",
+                ""
+            ])
+        new_block_lines.append(marker_end)
+        new_block = "\n".join(new_block_lines)
+        if marker_start in content and marker_end in content:
+            pattern = re.compile(rf"{re.escape(marker_start)}.*?{re.escape(marker_end)}", re.DOTALL)
+            content = pattern.sub(new_block, content)
+        else:
+            content = content.strip() + "\n\n" + new_block + "\n"
+        with open(ssh_config_file, "w") as f:
+            f.write(content)
+
+    # 2. Sync VS Code settings.json
+    vscode_settings = os.path.expanduser("~/Library/Application Support/Code/User/settings.json")
+    if os.path.exists(vscode_settings):
+        try:
+            with open(vscode_settings, "r") as f:
+                v = json.load(f)
+            v["sshfs.configs"] = [
+                {
+                    "name": s["name"],
+                    "host": "127.0.0.1",
+                    "port": s["port"],
+                    "username": s.get("user", "ec2-user"),
+                    "privateKeyPath": s.get("key", "/Users/Shared/DB_Keys/newyear.pem"),
+                    "root": s.get("root", "/home/ec2-user")
+                } for s in servers
+            ]
+            if "terminal.integrated.profiles.osx" not in v:
+                v["terminal.integrated.profiles.osx"] = {"zsh": {"path": "zsh", "args": ["-l"]}}
+            for s in servers:
+                sw_cmd = f"cd {s.get("root", "/")} && sudo su {s.get("switch_user", "git")}"
+                v["terminal.integrated.profiles.osx"][s["name"]] = {
+                    "path": "ssh",
+                    "args": ["-t", s["name"], sw_cmd],
+                    "icon": "server"
+                }
+            with open(vscode_settings, "w") as f:
+                json.dump(v, f, indent=2)
+        except:
+            pass
+
+def get_next_port(servers):
+    ports = [s.get("port", 2222) for s in servers]
+    p = 2222
+    while p in ports:
+        p += 1
+    return p
+
+def start_tunnel(server):
+    port = server["port"]
+    host = server["host"]
+    cmd = f"aws ssm start-session --target {bastion_id} --document-name AWS-StartPortForwardingSessionToRemoteHost --parameters '''{{"host":["{host}"],"portNumber":["22"],"localPortNumber":["{port}"]}}''' --profile prod > /dev/null 2>&1 &"
+    os.system(cmd)
+    print(f"✅ Đã bật Tunnel ngầm cho {server["name"]} (127.0.0.1:{port})")
+
+def menu():
+    while True:
+        servers = load_servers()
+        print("\n==================================================")
+        print("💻 QUẢN LÝ & KẾT NỐI SSH SERVER / VS CODE (CRUD)")
+        print("==================================================")
+        if not servers:
+            print("  (Chưa có server nào được cấu hình)")
+        else:
+            for i, s in enumerate(servers, 1):
+                print(f"  {i}) {s["name"]} -> IP: {s["host"]} | Folder: {s.get("root", "/")} | Port: {s.get("port", 2222)}")
+        print("--------------------------------------------------")
+        print("  a) ➕ Thêm Server mới (Create)")
+        if servers:
+            print("  e) ✏️  Sửa Server (Edit)")
+            print("  d) 🗑️  Xóa Server (Delete)")
+        print("  b) 🔙 Quay lại Menu chính")
+        print("==================================================")
+        choice = input("👉 Chọn (1-" + str(len(servers)) + " để kết nối, hoặc a/e/d/b): ").strip()
+        
+        if choice.lower() == "b":
+            break
+        elif choice.lower() == "a":
+            name = input("👉 Nhập tên gợi nhớ (VD: photo-ac-thang): ").strip()
+            if not name:
+                print("❌ Tên không được để trống!")
+                continue
+            host = input("👉 Nhập IP nội bộ (VD: 172.30.6.197): ").strip()
+            if not host:
+                print("❌ IP không được để trống!")
+                continue
+            root = input("👉 Thư mục code từ xa [Enter để mặc định /home/ec2-user]: ").strip() or "/home/ec2-user"
+            sw = input("👉 User chuyển quyền Terminal [Enter để mặc định git]: ").strip() or "git"
+            usr = input("👉 User SSH kết nối [Enter để mặc định ec2-user]: ").strip() or "ec2-user"
+            key = input("👉 Đường dẫn Private Key [Enter để mặc định /Users/Shared/DB_Keys/newyear.pem]: ").strip() or "/Users/Shared/DB_Keys/newyear.pem"
+            port = get_next_port(servers)
+            
+            servers.append({
+                "name": name,
+                "host": host,
+                "port": port,
+                "user": usr,
+                "switch_user": sw,
+                "root": root,
+                "key": key
+            })
+            save_servers(servers)
+            print(f"✅ Đã thêm server [{name}] thành công!")
+            print(f"✅ Đã tự động cập nhật ~/.ssh/config & VS Code!")
+            start_tunnel(servers[-1])
+        elif choice.lower() == "d" and servers:
+            idx = input(f"👉 Nhập số thứ tự Server muốn xóa (1-{len(servers)}): ").strip()
+            if idx.isdigit() and 1 <= int(idx) <= len(servers):
+                deleted = servers.pop(int(idx)-1)
+                save_servers(servers)
+                print(f"🗑️ Đã xóa server [{deleted["name"]}] khỏi cấu hình!")
+            else:
+                print("❌ Số thứ tự không hợp lệ!")
+        elif choice.lower() == "e" and servers:
+            idx = input(f"👉 Nhập số thứ tự Server muốn sửa (1-{len(servers)}): ").strip()
+            if idx.isdigit() and 1 <= int(idx) <= len(servers):
+                s = servers[int(idx)-1]
+                name = input(f"👉 Tên [{s["name"]}]: ").strip() or s["name"]
+                host = input(f"👉 IP nội bộ [{s["host"]}]: ").strip() or s["host"]
+                root = input(f"👉 Thư mục code [{s.get("root", "/")}]: ").strip() or s.get("root", "/")
+                sw = input(f"👉 User chuyển quyền [{s.get("switch_user", "git")}]: ").strip() or s.get("switch_user", "git")
+                key = input(f"👉 File Key [{s.get("key", "")}]: ").strip() or s.get("key", "")
+                s["name"] = name
+                s["host"] = host
+                s["root"] = root
+                s["switch_user"] = sw
+                s["key"] = key
+                save_servers(servers)
+                print(f"✅ Đã cập nhật server [{name}] thành công!")
+            else:
+                print("❌ Số thứ tự không hợp lệ!")
+        elif choice.isdigit() and 1 <= int(choice) <= len(servers):
+            s = servers[int(choice)-1]
+            print(f"\n--- THAO TÁC VỚI [{s["name"]}] ---")
+            print("1. 🖥️  Mở Terminal SSH (user " + s.get("switch_user", "git") + ")")
+            print("2. 🛢️  Mở đường hầm Tunnel (Port " + str(s["port"]) + " cho VS Code SSH FS)")
+            act = input("👉 Chọn [1-2]: ").strip()
+            if act == "1":
+                start_tunnel(s)
+                sw_cmd = f"cd {s.get("root", "/")} && sudo su {s.get("switch_user", "git")}"
+                os.system(f"ssh -t {s["name"]} "{sw_cmd}"")
+            elif act == "2":
+                start_tunnel(s)
+        else:
+            print("❌ Lựa chọn không hợp lệ!")
+
+menu()
+'
+}
+
 run_menu() {
     echo "=================================================="
     echo "🚀 BẢNG ĐIỀU KHIỂN TRUNG TÂM (AWS TOOLS) v$VERSION"
@@ -358,8 +555,9 @@ run_menu() {
     echo "2. 🖥️  SSH vào Bastion Host (Giao diện CLI)"
     echo "3. 🛢️  Mở đường hầm (Tunnel) thủ công tới Database"
     echo "4. 🚀 Auto-Connect DBeaver (Không cần Setup DBeaver)"
+    echo "5. 💻 Quản lý & Kết nối SSH Server / VS Code (CRUD)"
     echo "=================================================="
-    printf "👉 Chọn [1-4]: "
+    printf "👉 Chọn [1-5]: "
     read MENU_CHOICE
 
     if [ "$MENU_CHOICE" = "1" ]; then
@@ -456,6 +654,8 @@ finally:
         else
             echo "❌ Lựa chọn không hợp lệ."
         fi
+    elif [ "$MENU_CHOICE" = "5" ]; then
+        manage_ssh_servers
     else
         echo "❌ Không hợp lệ."
     fi
@@ -471,6 +671,7 @@ case "$1" in
     "tunnel") run_tunnel "$2" ;;
     "dbeaver") run_dbeaver "$2" ;;
     "ssh") run_ssh_bastion "$2" ;;
+    "ssh-server"|"server") manage_ssh_servers ;;
     *) 
         setup_aws_config
         run_menu 
